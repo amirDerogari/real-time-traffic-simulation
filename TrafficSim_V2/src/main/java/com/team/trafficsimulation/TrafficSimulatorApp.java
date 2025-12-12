@@ -1,42 +1,44 @@
 package com.team.trafficsimulation;
 
-import org.eclipse.sumo.libtraci.TraCIConnection; //steuert die Verbindung
-import org.eclipse.sumo.libtraci.StringVector;
 import org.eclipse.sumo.libtraci.Simulation; //für preloadlibaries()
-import org.eclipse.sumo.libtraci.GUI;
-import org.eclipse.sumo.libtraci.Vehicle;
+
+import java.util.List;
+
 
 public class TrafficSimulatorApp {
 
+    //config Path
+    private static final String CONFIG = "src/main/resources/beispiel2config.sumocfg";
+
     public static void main(String[] args) {
 
-        // Pfad zur SUMO Konfigurationsdatei
-        String sumoConfigPath = "src/main/resources/beispiel2config.sumocfg";
-
-        //Bibliotheken Test
+        //Preload Libraries
         try {
             Simulation.preloadLibraries();
         } catch (Exception e) {
-            System.err.println("Fehler beim Laden der libtraci Bibliotheken: " + e.getMessage());
+            System.err.println("Failed Library loading: " + e.getMessage());
         }
 
-        //Simulation Start
-        String[] command = {"sumo-gui", "-c", sumoConfigPath, "--delay", "200"};
-        StringVector commandVector = new StringVector(command);
+        //Simulation
+        SimulationManager manager = new SimulationManager(CONFIG);
+        manager.startSimulation();
 
+        //do i steps
+        for (int i=0; i<30; i++) {
+            manager.step();
 
+            //Example: Print Positions
+            List<Vehicle> vehicles = manager.getVehicles();
+            for (Vehicle v : vehicles) {
+                PositionVector pos = v.getPositionVector();
 
-        //
-        System.out.println("Starte SUMO: " + sumoConfigPath);
-        Simulation.start(commandVector);
-
-        for(int i=0; i<50; i++) {
-            Simulation.step();
+                if((i%10) == 0){
+                    System.out.println(pos.getX() + " " + pos.getY());
+                }
+            }
         }
 
-        Simulation.close();
-
-
+    manager.closeSimulation();
 
     }
 }
