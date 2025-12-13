@@ -37,6 +37,9 @@ public class Vehicle {
         org.eclipse.sumo.libtraci.Vehicle.changeLane(this.id, laneIndex, duration);
     }
 
+
+    //inject vehicle!
+
     public void setRoute(StringVector edgeIds) {
         org.eclipse.sumo.libtraci.Vehicle.setRoute(this.id, edgeIds);
     }
