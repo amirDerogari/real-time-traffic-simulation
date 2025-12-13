@@ -1,0 +1,32 @@
+package com.team.trafficsimulation.gui;
+
+import com.team.trafficsimulation.controller.SimulationController;
+import com.team.trafficsimulation.sumo.SumoConnection;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.Stage;
+
+public class TrafficSimulationAppFX extends Application {
+
+    @Override
+    public void start(Stage stage) {
+
+        // Caspar backend classes
+        SumoConnection connection = new SumoConnection();
+        SimulationController controller = new SimulationController(connection);
+
+        // Mojtaba GUI
+        MapView mapView = new MapView();
+        ControlPanel controlPanel = new ControlPanel(controller, mapView);
+
+        BorderPane root = new BorderPane();
+        root.setCenter(mapView);
+        root.setRight(controlPanel);
+
+        Scene scene = new Scene(root, 1200, 800);
+        stage.setTitle("Real-Time Traffic Simulation");
+        stage.setScene(scene);
+        stage.show();
+    }
+}
