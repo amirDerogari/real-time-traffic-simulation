@@ -71,7 +71,7 @@ public class ControlPanel extends VBox {
             List<Vehicle> vehicles = simManager.getVehicles();
             mapView.renderVehicles(vehicles);
             List<com.team.trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights();
-            mapView.renderTrafficLights(simManager.getAllTrafficLights());
+            mapView.renderTrafficLights(tls);
 
         } catch (Exception ex) {
             // If SUMO closes unexpectedly, stop spamming

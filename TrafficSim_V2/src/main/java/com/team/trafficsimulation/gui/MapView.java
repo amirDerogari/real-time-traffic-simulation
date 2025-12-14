@@ -19,6 +19,7 @@ public class MapView extends Pane {
     private final Group roadLayer = new Group();
     private final Group trafficLightLayer = new Group();
     private final Group vehicleLayer = new Group();
+    private final Group worldLayer = new Group();
 
     private NetworkModel network;
 
@@ -32,13 +33,90 @@ public class MapView extends Pane {
     private double minX, maxY;
     private double margin = 20;
 
+    // Zoom and Pan state variables (worldLayer)
+    private double zoom = 1.0;
+
+    private double panX = 0;
+    private double panY = 0;
+
+    private double mouseStartX;
+    private double mouseStartY;
+
+    private double panStartX;
+    private double panStartY;
+
+
     public MapView() {
         setStyle("-fx-background-color: #2b2b2b;");
-        getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
+        worldLayer.getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
+        getChildren().add(worldLayer);
+        applyTransforms();
+
+        // Mouse wheel zoom (centered on mouse position)
+        setOnScroll(e -> {
+            double oldZoom = zoom;
+
+            double factor = (e.getDeltaY() > 0) ? 1.1 : 0.9;
+            zoom = clamp(zoom * factor, 0.2, 5.0);
+
+            double mouseX = e.getX();
+            double mouseY = e.getY();
+
+            double f = zoom / oldZoom;
+            panX = mouseX - f * (mouseX - panX);
+            panY = mouseY - f * (mouseY - panY);
+
+            applyTransforms();
+            e.consume();
+        });
+
+        // Mouse drag pan
+        setOnMousePressed(e -> {
+            //right button for pan
+            if (!e.isSecondaryButtonDown()) return;
+
+            mouseStartX = e.getX();
+            mouseStartY = e.getY();
+
+            panStartX = panX;
+            panStartY = panY;
+        });
+
+        setOnMouseDragged(e -> {
+            if (!e.isSecondaryButtonDown()) return;
+
+            panX = panStartX + (e.getX() - mouseStartX);
+            panY = panStartY + (e.getY() - mouseStartY);
+
+            applyTransforms();
+        });
+
+        // Quick reset (double click)
+        setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                zoom = 1.0;
+                panX = 0;
+                panY = 0;
+                applyTransforms();
+            }
+        });
 
         // redraw roads when resized
         widthProperty().addListener((obs, o, n) -> redrawStaticLayers());
         heightProperty().addListener((obs, o, n) -> redrawStaticLayers());
+    }
+
+    private void applyTransforms() {
+        worldLayer.setScaleX(zoom);
+        worldLayer.setScaleY(zoom);
+
+        worldLayer.setTranslateX(panX);
+        worldLayer.setTranslateY(panY);
+
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     public void setNetwork(NetworkModel network) {
