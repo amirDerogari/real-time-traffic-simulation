@@ -1,6 +1,6 @@
-package com.team.trafficsimulation.stats;
+package trafficsimulation.stats; // Statistics package
 
-import com.team.trafficsimulation.Vehicle; // Vehicle wrapper
+import trafficsimulation.Vehicle; // Vehicle wrapper
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,26 +19,26 @@ public class StatsManager { // Manages calculation and storage of statistics
         int vehicleCount = vehicles.size(); // Number of vehicles
 
         double averageSpeed = 0.0; // Default average speed
-        if (vehicleCount > 0) {
-            double speedSum = 0.0;
+        if (vehicleCount > 0) { // Avoid division by zero
+            double speedSum = 0.0; // Sum of speeds
             for (Vehicle v : vehicles) {
                 speedSum += v.getSpeed(); // Read live speed from SUMO
             }
             averageSpeed = speedSum / vehicleCount; // Calculate average speed
         }
 
-        double density = vehicleCount; // Simple density
+        double density = vehicleCount; // Simple density for milestone 2
 
         SimulationStatsSnapshot snapshot =
                 new SimulationStatsSnapshot(
-                        simulationStep,
-                        averageSpeed,
-                        density,
-                        vehicleCount
+                        simulationStep, // Simulation step
+                        averageSpeed,   // Average speed
+                        density,        // Vehicle density
+                        vehicleCount    // Vehicle count
                 );
 
         history.add(snapshot); // Store snapshot in history
-        return snapshot;
+        return snapshot; // Return snapshot
     }
 
     public List<SimulationStatsSnapshot> getHistory() {
@@ -58,10 +58,10 @@ public class StatsManager { // Manages calculation and storage of statistics
 
             densityPerEdge.put(
                     edgeId,
-                    densityPerEdge.getOrDefault(edgeId, 0) + 1
+                    densityPerEdge.getOrDefault(edgeId, 0) + 1 // Increase count
             );
         }
 
-        return densityPerEdge;
+        return densityPerEdge; // Return density per edge
     }
 }

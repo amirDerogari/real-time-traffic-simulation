@@ -1,11 +1,11 @@
-package com.team.trafficsimulation.export;
+package trafficsimulation.export;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
-import com.team.trafficsimulation.util.AppLogger;
+import trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.util.AppLogger;
 
 public class PdfStatsExporter implements StatsExporter { // PDF exporter placeholder
 

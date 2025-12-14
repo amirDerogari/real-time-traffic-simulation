@@ -1,4 +1,4 @@
-package com.team.trafficsimulation.gui.net;
+package trafficsimulation.gui.net;
 
 import java.util.List;
 import java.util.Map;

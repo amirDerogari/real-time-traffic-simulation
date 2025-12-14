@@ -1,4 +1,6 @@
-package com.team.trafficsimulation;
+package trafficsimulation;
+
+//Simple 2D Vector class to store x,y positions of objects after calling getX and getY functions
 
 public class PositionVector {
     private final double x;

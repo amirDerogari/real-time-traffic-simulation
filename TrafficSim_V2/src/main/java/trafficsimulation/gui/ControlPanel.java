@@ -1,7 +1,7 @@
-package com.team.trafficsimulation.gui;
+package trafficsimulation.gui;
 
-import com.team.trafficsimulation.SimulationManager;
-import com.team.trafficsimulation.Vehicle;
+import trafficsimulation.SimulationManager;
+import trafficsimulation.Vehicle;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -70,7 +70,7 @@ public class ControlPanel extends VBox {
             simManager.step();
             List<Vehicle> vehicles = simManager.getVehicles();
             mapView.renderVehicles(vehicles);
-            List<com.team.trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights();
+            List<trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights();
             mapView.renderTrafficLights(tls);
 
         } catch (Exception ex) {

@@ -1,9 +1,9 @@
-package com.team.trafficsimulation.export;
+package trafficsimulation.export;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.stats.SimulationStatsSnapshot;
 
 public interface StatsExporter { // Exporter interface
 

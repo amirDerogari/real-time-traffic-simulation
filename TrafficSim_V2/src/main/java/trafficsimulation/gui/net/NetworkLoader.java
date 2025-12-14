@@ -1,11 +1,11 @@
-package com.team.trafficsimulation.gui.net;
+package trafficsimulation.gui.net;
 
 import org.w3c.dom.*;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.util.*;
 
-import static com.team.trafficsimulation.gui.net.NetworkModel.Point;
+import static trafficsimulation.gui.net.NetworkModel.Point;
 
 public class NetworkLoader {
 

@@ -1,9 +1,9 @@
-package com.team.trafficsimulation.gui;
+package trafficsimulation.gui;
 
-import com.team.trafficsimulation.PositionVector;
-import com.team.trafficsimulation.Vehicle;
-import com.team.trafficsimulation.TrafficLight;
-import com.team.trafficsimulation.gui.net.NetworkModel;
+import trafficsimulation.PositionVector;
+import trafficsimulation.Vehicle;
+import trafficsimulation.TrafficLight;
+import trafficsimulation.gui.net.NetworkModel;
 import javafx.scene.Group;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;

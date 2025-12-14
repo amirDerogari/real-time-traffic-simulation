@@ -1,4 +1,4 @@
-package com.team.trafficsimulation;
+package trafficsimulation;
 
 public class TrafficLight {
 

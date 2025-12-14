@@ -1,4 +1,4 @@
-package com.team.trafficsimulation;
+package trafficsimulation;
 
 import org.eclipse.sumo.libtraci.StringVector;
 
@@ -39,7 +39,9 @@ public class Vehicle {
 
 
     //inject vehicle!
+    //amount == length of list getVehicles
 
+    //to change route
     public void setRoute(StringVector edgeIds) {
         org.eclipse.sumo.libtraci.Vehicle.setRoute(this.id, edgeIds);
     }

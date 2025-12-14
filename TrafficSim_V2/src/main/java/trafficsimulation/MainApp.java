@@ -1,6 +1,6 @@
-package com.team.trafficsimulation;
+package trafficsimulation;
 
-import com.team.trafficsimulation.gui.TrafficSimulationAppFX;
+import trafficsimulation.gui.TrafficSimulationAppFX;
 import javafx.application.Application;
 
 public class MainApp {

@@ -1,8 +1,8 @@
-package com.team.trafficsimulation.app;
+package trafficsimulation.app; // Application controller package
 
-import com.team.trafficsimulation.Vehicle;
-import com.team.trafficsimulation.stats.StatsManager;
-import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.Vehicle; // Vehicle wrapper
+import trafficsimulation.stats.StatsManager; // Statistics manager
+import trafficsimulation.stats.SimulationStatsSnapshot; // Stats snapshot
 
 import java.util.List;
 import java.util.Map;
@@ -32,11 +32,11 @@ public class SimulationController { // Controls simulation statistics flow
             ); // Print edge density
         }
 
-        simulationStep++;
-        return snapshot;
+        simulationStep++; // Increase simulation step
+        return snapshot; // Return statistics snapshot
     }
 
     public StatsManager getStatsManager() {
-        return statsManager;
+        return statsManager; // Provide access to statistics manager
     }
 }

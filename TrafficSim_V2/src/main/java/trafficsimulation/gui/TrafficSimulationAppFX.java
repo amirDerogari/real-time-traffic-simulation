@@ -1,7 +1,7 @@
-package com.team.trafficsimulation.gui;
+package trafficsimulation.gui;
 
-import com.team.trafficsimulation.SimulationManager;
-import com.team.trafficsimulation.gui.net.NetworkLoader;
+import trafficsimulation.SimulationManager;
+import trafficsimulation.gui.net.NetworkLoader;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
