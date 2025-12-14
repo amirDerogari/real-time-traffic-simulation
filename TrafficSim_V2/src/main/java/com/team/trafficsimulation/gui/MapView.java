@@ -1,157 +1,151 @@
 package com.team.trafficsimulation.gui;
 
-import javafx.animation.AnimationTimer;
+import com.team.trafficsimulation.PositionVector;
+import com.team.trafficsimulation.Vehicle;
+import com.team.trafficsimulation.TrafficLight;
+import com.team.trafficsimulation.gui.net.NetworkModel;
+import javafx.scene.Group;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polyline;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Map;
 
 public class MapView extends Pane {
 
-    private static final double CAR_W = 44;
-    private static final double CAR_H = 24;
+    private final Group roadLayer = new Group();
+    private final Group trafficLightLayer = new Group();
+    private final Group vehicleLayer = new Group();
 
-    // Road geometry (must match what we draw)
-    private static final double ROAD_H_Y = 200;
-    private static final double ROAD_H_X1 = 80;
-    private static final double ROAD_H_X2 = 820;
+    private NetworkModel network;
 
-    private static final double ROAD_V_X = 450;
-    private static final double ROAD_V_Y1 = 80;
-    private static final double ROAD_V_Y2 = 720;
+    private final Map<String, Circle> vehicleNodes = new HashMap<>();
 
-    private static class MovingCar {
-        CarSprite sprite;
-        boolean horizontal;  // true = horizontal road, false = vertical road
-        double speed;        // pixels per frame
-        int dir;             // +1 or -1
-    }
+    // ✅ store traffic light nodes by ID so we can change their color live
+    private final Map<String, Circle> trafficLightNodes = new HashMap<>();
 
-    private final List<MovingCar> cars = new ArrayList<>();
+    // transform parameters
+    private double scale = 1.0;
+    private double minX, maxY;
+    private double margin = 20;
 
     public MapView() {
         setStyle("-fx-background-color: #2b2b2b;");
-        setPrefSize(900, 800);
+        getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
 
-        drawDemoRoads();
-        placeCarsInSpecificOrderDemo();
-
-        startAnimation();
+        // redraw roads when resized
+        widthProperty().addListener((obs, o, n) -> redrawStaticLayers());
+        heightProperty().addListener((obs, o, n) -> redrawStaticLayers());
     }
 
-    private void drawDemoRoads() {
-        Line roadH = new Line(ROAD_H_X1, ROAD_H_Y, ROAD_H_X2, ROAD_H_Y);
-        roadH.setStroke(Color.LIGHTGRAY);
-        roadH.setStrokeWidth(14);
-
-        Line roadV = new Line(ROAD_V_X, ROAD_V_Y1, ROAD_V_X, ROAD_V_Y2);
-        roadV.setStroke(Color.LIGHTGRAY);
-        roadV.setStrokeWidth(14);
-
-        getChildren().addAll(roadH, roadV);
+    public void setNetwork(NetworkModel network) {
+        this.network = network;
+        redrawStaticLayers();
     }
 
-    private void placeCarsInSpecificOrderDemo() {
-        // Put the ordered cars ON the horizontal road, spaced nicely
-        double startX = 140;
-        double gap = 85;
+    private void redrawStaticLayers() {
+        if (network == null) return;
 
-        for (int i = 0; i < CarAssets.ORDERED.size(); i++) {
-            double x = startX + i * gap;
+        roadLayer.getChildren().clear();
+        trafficLightLayer.getChildren().clear();
+        trafficLightNodes.clear(); // ✅ important: rebuild TL circles on resize/reload
 
-            // Clamp so they don’t start outside road
-            if (x < ROAD_H_X1 + 20) x = ROAD_H_X1 + 20;
-            if (x > ROAD_H_X2 - 20) x = ROAD_H_X2 - 20;
+        double w = getWidth();
+        double h = getHeight();
+        if (w <= 0 || h <= 0) return;
 
-            int dir = (i % 2 == 0) ? +1 : -1;
+        // compute scaling to fit convBoundary
+        double rangeX = network.maxX - network.minX;
+        double rangeY = network.maxY - network.minY;
 
-            addMovingCarOnHorizontalRoad(CarAssets.ORDERED.get(i), x, ROAD_H_Y, dir);
-        }
-    }
+        scale = Math.min((w - 2 * margin) / rangeX, (h - 2 * margin) / rangeY);
 
-    private void startAnimation() {
-        AnimationTimer timer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                updateCars();
+        // store for y-inversion
+        minX = network.minX;
+        maxY = network.maxY;
+
+        // draw roads
+        for (List<NetworkModel.Point> poly : network.polylines) {
+            Polyline line = new Polyline();
+            for (NetworkModel.Point p : poly) {
+                double sx = toScreenX(p.x());
+                double sy = toScreenY(p.y());
+                line.getPoints().addAll(sx, sy);
             }
-        };
-        timer.start();
+            line.setStroke(Color.LIGHTGRAY);
+            line.setStrokeWidth(6);
+            roadLayer.getChildren().add(line);
+        }
+
+        // ✅ Create traffic light circles once (default gray), color updated in renderTrafficLights()
+        network.trafficLightNodes.forEach((id, p) -> {
+            Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 6, Color.GRAY);
+            trafficLightNodes.put(id, c);
+            trafficLightLayer.getChildren().add(c);
+        });
     }
 
-    private void updateCars() {
-        for (MovingCar c : cars) {
-            if (c.horizontal) {
-                double x = (c.sprite.getLayoutX() + CAR_W / 2.0) + (c.speed * c.dir);
-                double y = ROAD_H_Y;
+    public void renderVehicles(List<Vehicle> vehicles) {
+        if (network == null) return;
 
-                // bounce at road ends
-                if (x < ROAD_H_X1) { x = ROAD_H_X1; c.dir = +1; c.sprite.setHeadingDegrees(0); }
-                if (x > ROAD_H_X2) { x = ROAD_H_X2; c.dir = -1; c.sprite.setHeadingDegrees(180); }
+        for (Vehicle v : vehicles) {
+            String id = v.getId();
+            PositionVector p = v.getPositionVector();
 
-                c.sprite.setCenterPosition(x, y);
+            double x = toScreenX(p.getX());
+            double y = toScreenY(p.getY());
 
-            } else {
-                double x = ROAD_V_X;
-                double y = (c.sprite.getLayoutY() + CAR_H / 2.0) + (c.speed * c.dir);
-
-                // bounce at road ends
-                if (y < ROAD_V_Y1) { y = ROAD_V_Y1; c.dir = +1; c.sprite.setHeadingDegrees(90); }
-                if (y > ROAD_V_Y2) { y = ROAD_V_Y2; c.dir = -1; c.sprite.setHeadingDegrees(270); }
-
-                c.sprite.setCenterPosition(x, y);
+            Circle c = vehicleNodes.get(id);
+            if (c == null) {
+                c = new Circle(4, Color.YELLOW);
+                vehicleNodes.put(id, c);
+                vehicleLayer.getChildren().add(c);
             }
+            c.setCenterX(x);
+            c.setCenterY(y);
         }
     }
 
-    private void addMovingCarOnHorizontalRoad(String path, double x, double y, int dir) {
-        CarSprite sprite = new CarSprite(path, CAR_W, CAR_H);
-        sprite.setCenterPosition(x, y);
-        sprite.setHeadingDegrees(dir > 0 ? 0 : 180);
+    // ✅ NEW: update traffic lights colors from SUMO state each tick
+    public void renderTrafficLights(List<TrafficLight> tls) {
+        if (network == null) return;
 
-        MovingCar mc = new MovingCar();
-        mc.sprite = sprite;
-        mc.horizontal = true;
-        mc.dir = dir;
-        mc.speed = ThreadLocalRandom.current().nextDouble(0.2, 0.8);
+        for (TrafficLight tl : tls) {
+            String id = tl.getId();
 
-        cars.add(mc);
-        getChildren().add(sprite);
-    }
+            Circle c = trafficLightNodes.get(id);
+            if (c == null) {
+                // Not in our network list (ID mismatch) -> ignore for now
+                continue;
+            }
 
-    private void addMovingCarOnVerticalRoad(String path, double x, double y, int dir) {
-        CarSprite sprite = new CarSprite(path, CAR_W, CAR_H);
-        sprite.setCenterPosition(x, y);
-        sprite.setHeadingDegrees(dir > 0 ? 90 : 270);
-
-        MovingCar mc = new MovingCar();
-        mc.sprite = sprite;
-        mc.horizontal = false;
-        mc.dir = dir;
-        mc.speed = ThreadLocalRandom.current().nextDouble(0.2, 0.8);
-
-        cars.add(mc);
-        getChildren().add(sprite);
-    }
-
-    /** Called from ControlPanel: inject a random car ON a road and make it move */
-    public void injectRandomCarOnRoad() {
-        int idx = ThreadLocalRandom.current().nextInt(CarAssets.ORDERED.size());
-        String path = CarAssets.ORDERED.get(idx);
-
-        boolean horizontal = ThreadLocalRandom.current().nextBoolean();
-
-        if (horizontal) {
-            double x = ThreadLocalRandom.current().nextDouble(ROAD_H_X1 + 20, ROAD_H_X2 - 20);
-            int dir = ThreadLocalRandom.current().nextBoolean() ? +1 : -1;
-            addMovingCarOnHorizontalRoad(path, x, ROAD_H_Y, dir);
-        } else {
-            double y = ThreadLocalRandom.current().nextDouble(ROAD_V_Y1 + 20, ROAD_V_Y2 - 20);
-            int dir = ThreadLocalRandom.current().nextBoolean() ? +1 : -1;
-            addMovingCarOnVerticalRoad(path, ROAD_V_X, y, dir);
+            c.setFill(colorFromPhaseState(tl.getPhaseState()));
         }
+    }
+
+    // ✅ Helper: pick ONE junction color from the full phase string (rGrG...)
+    private Color colorFromPhaseState(String state) {
+        if (state == null || state.isBlank()) return Color.GRAY;
+
+        // If any green exists -> show green
+        if (state.indexOf('G') >= 0 || state.indexOf('g') >= 0) return Color.LIMEGREEN;
+
+        // If any yellow exists -> show yellow
+        if (state.indexOf('y') >= 0 || state.indexOf('Y') >= 0) return Color.GOLD;
+
+        // Otherwise red
+        return Color.RED;
+    }
+
+    private double toScreenX(double x) {
+        return margin + (x - minX) * scale;
+    }
+
+    // JavaFX y goes downward; SUMO y goes upward -> invert using maxY
+    private double toScreenY(double y) {
+        return margin + (maxY - y) * scale;
     }
 }
