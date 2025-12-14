@@ -9,23 +9,26 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polyline;
-
+import javafx.scene.control.Tooltip;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MapView extends Pane {
 
+    private String selectedVehicleId = null;
     private final Group roadLayer = new Group();
     private final Group trafficLightLayer = new Group();
     private final Group vehicleLayer = new Group();
     private final Group worldLayer = new Group();
+    private final Map<String, Vehicle> latestVehicles = new HashMap<>();
+    private final Map<String, Tooltip> vehicleTooltips = new HashMap<>();
 
     private NetworkModel network;
 
     private final Map<String, Circle> vehicleNodes = new HashMap<>();
 
-    // ✅ store traffic light nodes by ID so we can change their color live
+    // store traffic light nodes by ID so we change their color live
     private final Map<String, Circle> trafficLightNodes = new HashMap<>();
 
     // transform parameters
@@ -50,6 +53,9 @@ public class MapView extends Pane {
         setStyle("-fx-background-color: #2b2b2b;");
         worldLayer.getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
         getChildren().add(worldLayer);
+        roadLayer.setMouseTransparent(true);
+        // trafficLightLayer.setMouseTransparent(true); //(traffic lights won’t be clickable now, after adding features, goes out of comment)
+
         applyTransforms();
 
         // Mouse wheel zoom (centered on mouse position)
@@ -98,6 +104,13 @@ public class MapView extends Pane {
                 panX = 0;
                 panY = 0;
                 applyTransforms();
+                return;
+            }
+
+            // Clear selection unless a vehicle circle was clicked
+            if (!(e.getTarget() instanceof Circle)
+                    || !vehicleNodes.containsValue((Circle) e.getTarget())) {
+                clearSelection();
             }
         });
 
@@ -129,7 +142,7 @@ public class MapView extends Pane {
 
         roadLayer.getChildren().clear();
         trafficLightLayer.getChildren().clear();
-        trafficLightNodes.clear(); // ✅ important: rebuild TL circles on resize/reload
+        trafficLightNodes.clear(); // important: rebuild TL circles on resize/reload
 
         double w = getWidth();
         double h = getHeight();
@@ -158,7 +171,7 @@ public class MapView extends Pane {
             roadLayer.getChildren().add(line);
         }
 
-        // ✅ Create traffic light circles once (default gray), color updated in renderTrafficLights()
+        // Create traffic light circles once, color updated in renderTrafficLights()
         network.trafficLightNodes.forEach((id, p) -> {
             Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 6, Color.GRAY);
             trafficLightNodes.put(id, c);
@@ -171,23 +184,70 @@ public class MapView extends Pane {
 
         for (Vehicle v : vehicles) {
             String id = v.getId();
+            latestVehicles.put(id, v);
             PositionVector p = v.getPositionVector();
 
             double x = toScreenX(p.getX());
             double y = toScreenY(p.getY());
 
             Circle c = vehicleNodes.get(id);
+
+            // 1) Create circle if missing
             if (c == null) {
-                c = new Circle(4, Color.YELLOW);
+                c = new Circle(5, Color.YELLOW);
                 vehicleNodes.put(id, c);
                 vehicleLayer.getChildren().add(c);
             }
+
+            // 2) Ensure tooltip exists (even for circles created earlier)
+            // Ensure tooltip exists for this vehicle
+            Tooltip tooltip = vehicleTooltips.get(id);
+            if (tooltip == null) {
+                tooltip = new Tooltip();
+                tooltip.setShowDelay(javafx.util.Duration.millis(200));
+                vehicleTooltips.put(id, tooltip);
+            }
+
+            // Always (re)install and always update text every tick
+            Tooltip.install(c, tooltip);
+            tooltip.setText(
+                    "Vehicle ID: " + id +
+                            "\nSpeed: " + String.format("%.2f", v.getSpeed()) + " m/s" +
+                            "\nEdge: " + v.getEdgeId()
+            );
+
+            // 3) Update position
             c.setCenterX(x);
             c.setCenterY(y);
+            if (!Boolean.TRUE.equals(c.getProperties().get("handlersInstalled"))) {
+                final String vehicleId = id;
+                final Circle node = c;
+
+                node.setOnMouseEntered(e -> {
+                    node.setRadius(6);
+                    node.setStroke(Color.BLACK);
+                    node.setStrokeWidth(1.5);
+                    setCursor(javafx.scene.Cursor.HAND);
+                    e.consume();
+                });
+
+                node.setOnMouseExited(e -> {
+                    onVehicleMouseExit(vehicleId, node);
+                    e.consume();
+                });
+
+                node.setOnMouseClicked(e -> {
+                    selectVehicle(vehicleId);
+                    e.consume();
+                });
+
+                c.getProperties().put("handlersInstalled", true);
+            }
+
         }
     }
 
-    // ✅ NEW: update traffic lights colors from SUMO state each tick
+    // update traffic lights colors from SUMO state each tick
     public void renderTrafficLights(List<TrafficLight> tls) {
         if (network == null) return;
 
@@ -204,7 +264,7 @@ public class MapView extends Pane {
         }
     }
 
-    // ✅ Helper: pick ONE junction color from the full phase string (rGrG...)
+    //Helper: pick ONE junction color from the full phase string (rGrG...)
     private Color colorFromPhaseState(String state) {
         if (state == null || state.isBlank()) return Color.GRAY;
 
@@ -217,6 +277,46 @@ public class MapView extends Pane {
         // Otherwise red
         return Color.RED;
     }
+
+    private void selectVehicle(String id) {
+        // Deselect old
+        if (selectedVehicleId != null) {
+            Circle old = vehicleNodes.get(selectedVehicleId);
+            if (old != null) {
+                old.setRadius(4);
+                old.setStroke(null);
+            }
+        }
+
+        // Select new
+        selectedVehicleId = id;
+        Circle c = vehicleNodes.get(id);
+        if (c != null) {
+            c.setRadius(7);
+            c.setStroke(Color.RED);
+            c.setStrokeWidth(2);
+        }
+    }
+    private void onVehicleMouseExit(String vehicleId, Circle c) {
+        if (!vehicleId.equals(selectedVehicleId)) {
+            c.setRadius(4);
+            c.setStroke(null);
+        }
+        setCursor(javafx.scene.Cursor.DEFAULT);
+    }
+
+
+    private void clearSelection() {
+        if (selectedVehicleId == null) return;
+
+        Circle c = vehicleNodes.get(selectedVehicleId);
+        if (c != null) {
+            c.setRadius(4);
+            c.setStroke(null);
+        }
+        selectedVehicleId = null;
+    }
+
 
     private double toScreenX(double x) {
         return margin + (x - minX) * scale;
