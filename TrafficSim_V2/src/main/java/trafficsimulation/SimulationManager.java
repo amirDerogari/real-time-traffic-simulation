@@ -1,4 +1,4 @@
-package com.team.trafficsimulation;
+package trafficsimulation;
 
 import org.eclipse.sumo.libtraci.Simulation;
 import org.eclipse.sumo.libtraci.StringVector; //dynamic and can reserve memory

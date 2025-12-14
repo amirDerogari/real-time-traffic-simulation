@@ -1,4 +1,4 @@
-package com.team.trafficsimulation.gui;
+package trafficsimulation.gui;
 
 import javafx.animation.AnimationTimer;
 import javafx.scene.layout.Pane;

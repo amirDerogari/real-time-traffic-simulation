@@ -1,8 +1,7 @@
-package com.team.trafficsimulation.app;
+package trafficsimulation.app;
 
-import java.util.logging.Logger;
-import com.team.trafficsimulation.stats.StatsManager;
-import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.stats.StatsManager;
+import trafficsimulation.stats.SimulationStatsSnapshot;
 
 public class SimulationController {
     private final StatsManager statsManager = new StatsManager();

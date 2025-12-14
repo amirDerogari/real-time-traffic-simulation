@@ -1,4 +1,4 @@
-package com.team.trafficsimulation.stats;
+package trafficsimulation.stats;
 
 public class SimulationStatsSnapshot {
     private final long simulationStep;

@@ -1,4 +1,4 @@
-package com.team.trafficsimulation.gui;
+package trafficsimulation.gui;
 
 import javafx.application.Application;
 import javafx.scene.Scene;

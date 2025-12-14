@@ -1,11 +1,11 @@
-package com.team.trafficsimulation.stats;
+package trafficsimulation.stats;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.team.trafficsimulation.util.AppLogger;
+import trafficsimulation.util.AppLogger;
 
 public class StatsManager {
     private static final Logger LOG = AppLogger.getLogger(StatsManager.class);
