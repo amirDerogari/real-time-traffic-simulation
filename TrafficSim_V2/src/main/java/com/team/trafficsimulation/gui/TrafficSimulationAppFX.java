@@ -1,5 +1,7 @@
 package com.team.trafficsimulation.gui;
 
+import com.team.trafficsimulation.SimulationManager;
+import com.team.trafficsimulation.gui.net.NetworkLoader;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
@@ -10,8 +12,16 @@ public class TrafficSimulationAppFX extends Application {
     @Override
     public void start(Stage stage) {
 
+        // 1) Map
         MapView mapView = new MapView();
-        ControlPanel controlPanel = new ControlPanel(null, mapView); // backend later
+        mapView.setNetwork(NetworkLoader.loadFromResources("beispiel2.net.xml"));
+
+        // 2) Backend manager (Caspar)
+        String configPath = "src/main/resources/beispiel2config.sumocfg";
+        SimulationManager simManager = new SimulationManager(configPath);
+
+        // 3) Control panel now takes SimulationManager
+        ControlPanel controlPanel = new ControlPanel(simManager, mapView);
 
         BorderPane root = new BorderPane();
         root.setCenter(mapView);

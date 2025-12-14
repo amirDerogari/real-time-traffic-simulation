@@ -1,68 +1,96 @@
 package com.team.trafficsimulation.gui;
 
+import com.team.trafficsimulation.SimulationManager;
+import com.team.trafficsimulation.Vehicle;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
-/**
- * Right-side GUI controls (Person B).
- * For now it's demo-only: inject random moving cars on the roads.
- * Later, replace Object controller with SimulationController when Person A finishes it.
- */
+import java.util.List;
+
 public class ControlPanel extends VBox {
 
-    public ControlPanel(Object controller, MapView mapView) {
+    private final SimulationManager simManager;
+    private final MapView mapView;
 
-        // Panel layout
+    private Timeline timeline;
+    private boolean running = false;
+
+    public ControlPanel(SimulationManager simManager, MapView mapView) {
+        this.simManager = simManager;
+        this.mapView = mapView;
+
         setPadding(new Insets(12));
         setSpacing(10);
         setPrefWidth(280);
         setStyle("-fx-background-color: #3c3f41;");
 
-        // Title
         Label title = new Label("Controls");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
 
-        // Buttons
-        Button injectRandomBtn = new Button("Inject Random Car (On Road)");
-        injectRandomBtn.setMaxWidth(Double.MAX_VALUE);
+        Button startBtn = new Button("Start Simulation");
+        startBtn.setMaxWidth(Double.MAX_VALUE);
 
-        Button injectTenBtn = new Button("Inject 10 Cars");
-        injectTenBtn.setMaxWidth(Double.MAX_VALUE);
+        Button stopBtn = new Button("Stop Simulation");
+        stopBtn.setMaxWidth(Double.MAX_VALUE);
 
-        Button clearBtn = new Button("Clear Cars (Demo)");
-        clearBtn.setMaxWidth(Double.MAX_VALUE);
+        startBtn.setOnAction(e -> startSimulation());
+        stopBtn.setOnAction(e -> stopSimulation());
 
-        // Actions
-        injectRandomBtn.setOnAction(e -> mapView.injectRandomCarOnRoad());
-
-        injectTenBtn.setOnAction(e -> {
-            for (int i = 0; i < 10; i++) {
-                mapView.injectRandomCarOnRoad();
-            }
-        });
-
-        // If you did NOT implement clear yet, just keep this as a placeholder.
-        // Later I can add a proper clearCars() method to MapView.
-        clearBtn.setOnAction(e -> {
-            System.out.println("Clear pressed (not implemented yet).");
-        });
-
-        // Spacer so buttons stay at the top
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        // Add to panel
-        getChildren().addAll(
-                title,
-                new Separator(),
-                injectRandomBtn,
-                injectTenBtn,
-                clearBtn,
-                spacer
-        );
+        getChildren().addAll(title, new Separator(), startBtn, stopBtn, spacer);
+    }
+
+    private void startSimulation() {
+        if (running) return;
+        running = true;
+
+        // Start SUMO on a background thread so the JavaFX UI thread doesn't freeze
+        new Thread(simManager::startSimulation, "SUMO-Start-Thread").start();
+
+        // Step + redraw 10 times per second
+        timeline = new Timeline(new KeyFrame(Duration.millis(100), e -> tick()));
+        timeline.setCycleCount(Timeline.INDEFINITE);
+        timeline.play();
+    }
+
+    private void tick() {
+        // If SUMO not connected yet, do nothing (prevents spam)
+        if (!simManager.isConnected()) return;
+
+        try {
+            simManager.step();
+            List<Vehicle> vehicles = simManager.getVehicles();
+            mapView.renderVehicles(vehicles);
+            List<com.team.trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights();
+            mapView.renderTrafficLights(tls);
+
+        } catch (Exception ex) {
+            // If SUMO closes unexpectedly, stop spamming
+            System.err.println("Tick failed: " + ex.getMessage());
+            stopSimulation();
+        }
+    }
+
+
+    private void stopSimulation() {
+        if (!running) return;
+        running = false;
+
+        if (timeline != null) {
+            timeline.stop();
+            timeline = null;
+        }
+
+        // Close SUMO / TraCI connection
+        simManager.closeSimulation();
     }
 }

@@ -1,157 +1,329 @@
 package com.team.trafficsimulation.gui;
 
-import javafx.animation.AnimationTimer;
+import com.team.trafficsimulation.PositionVector;
+import com.team.trafficsimulation.Vehicle;
+import com.team.trafficsimulation.TrafficLight;
+import com.team.trafficsimulation.gui.net.NetworkModel;
+import javafx.scene.Group;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
-
-import java.util.ArrayList;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polyline;
+import javafx.scene.control.Tooltip;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Map;
 
 public class MapView extends Pane {
 
-    private static final double CAR_W = 44;
-    private static final double CAR_H = 24;
+    private String selectedVehicleId = null;
+    private final Group roadLayer = new Group();
+    private final Group trafficLightLayer = new Group();
+    private final Group vehicleLayer = new Group();
+    private final Group worldLayer = new Group();
+    private final Map<String, Vehicle> latestVehicles = new HashMap<>();
+    private final Map<String, Tooltip> vehicleTooltips = new HashMap<>();
 
-    // Road geometry (must match what we draw)
-    private static final double ROAD_H_Y = 200;
-    private static final double ROAD_H_X1 = 80;
-    private static final double ROAD_H_X2 = 820;
+    private NetworkModel network;
 
-    private static final double ROAD_V_X = 450;
-    private static final double ROAD_V_Y1 = 80;
-    private static final double ROAD_V_Y2 = 720;
+    private final Map<String, Circle> vehicleNodes = new HashMap<>();
 
-    private static class MovingCar {
-        CarSprite sprite;
-        boolean horizontal;  // true = horizontal road, false = vertical road
-        double speed;        // pixels per frame
-        int dir;             // +1 or -1
-    }
+    // store traffic light nodes by ID so we change their color live
+    private final Map<String, Circle> trafficLightNodes = new HashMap<>();
 
-    private final List<MovingCar> cars = new ArrayList<>();
+    // transform parameters
+    private double scale = 1.0;
+    private double minX, maxY;
+    private double margin = 20;
+
+    // Zoom and Pan state variables (worldLayer)
+    private double zoom = 1.0;
+
+    private double panX = 0;
+    private double panY = 0;
+
+    private double mouseStartX;
+    private double mouseStartY;
+
+    private double panStartX;
+    private double panStartY;
+
 
     public MapView() {
         setStyle("-fx-background-color: #2b2b2b;");
-        setPrefSize(900, 800);
+        worldLayer.getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
+        getChildren().add(worldLayer);
+        roadLayer.setMouseTransparent(true);
+        // trafficLightLayer.setMouseTransparent(true); //(traffic lights won’t be clickable now, after adding features, goes out of comment)
 
-        drawDemoRoads();
-        placeCarsInSpecificOrderDemo();
+        applyTransforms();
 
-        startAnimation();
-    }
+        // Mouse wheel zoom (centered on mouse position)
+        setOnScroll(e -> {
+            double oldZoom = zoom;
 
-    private void drawDemoRoads() {
-        Line roadH = new Line(ROAD_H_X1, ROAD_H_Y, ROAD_H_X2, ROAD_H_Y);
-        roadH.setStroke(Color.LIGHTGRAY);
-        roadH.setStrokeWidth(14);
+            double factor = (e.getDeltaY() > 0) ? 1.1 : 0.9;
+            zoom = clamp(zoom * factor, 0.2, 5.0);
 
-        Line roadV = new Line(ROAD_V_X, ROAD_V_Y1, ROAD_V_X, ROAD_V_Y2);
-        roadV.setStroke(Color.LIGHTGRAY);
-        roadV.setStrokeWidth(14);
+            double mouseX = e.getX();
+            double mouseY = e.getY();
 
-        getChildren().addAll(roadH, roadV);
-    }
+            double f = zoom / oldZoom;
+            panX = mouseX - f * (mouseX - panX);
+            panY = mouseY - f * (mouseY - panY);
 
-    private void placeCarsInSpecificOrderDemo() {
-        // Put the ordered cars ON the horizontal road, spaced nicely
-        double startX = 140;
-        double gap = 85;
+            applyTransforms();
+            e.consume();
+        });
 
-        for (int i = 0; i < CarAssets.ORDERED.size(); i++) {
-            double x = startX + i * gap;
+        // Mouse drag pan
+        setOnMousePressed(e -> {
+            //right button for pan
+            if (!e.isSecondaryButtonDown()) return;
 
-            // Clamp so they don’t start outside road
-            if (x < ROAD_H_X1 + 20) x = ROAD_H_X1 + 20;
-            if (x > ROAD_H_X2 - 20) x = ROAD_H_X2 - 20;
+            mouseStartX = e.getX();
+            mouseStartY = e.getY();
 
-            int dir = (i % 2 == 0) ? +1 : -1;
+            panStartX = panX;
+            panStartY = panY;
+        });
 
-            addMovingCarOnHorizontalRoad(CarAssets.ORDERED.get(i), x, ROAD_H_Y, dir);
-        }
-    }
+        setOnMouseDragged(e -> {
+            if (!e.isSecondaryButtonDown()) return;
 
-    private void startAnimation() {
-        AnimationTimer timer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                updateCars();
+            panX = panStartX + (e.getX() - mouseStartX);
+            panY = panStartY + (e.getY() - mouseStartY);
+
+            applyTransforms();
+        });
+
+        // Quick reset (double click)
+        setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                zoom = 1.0;
+                panX = 0;
+                panY = 0;
+                applyTransforms();
+                return;
             }
-        };
-        timer.start();
+
+            // Clear selection unless a vehicle circle was clicked
+            if (!(e.getTarget() instanceof Circle)
+                    || !vehicleNodes.containsValue((Circle) e.getTarget())) {
+                clearSelection();
+            }
+        });
+
+        // redraw roads when resized
+        widthProperty().addListener((obs, o, n) -> redrawStaticLayers());
+        heightProperty().addListener((obs, o, n) -> redrawStaticLayers());
     }
 
-    private void updateCars() {
-        for (MovingCar c : cars) {
-            if (c.horizontal) {
-                double x = (c.sprite.getLayoutX() + CAR_W / 2.0) + (c.speed * c.dir);
-                double y = ROAD_H_Y;
+    private void applyTransforms() {
+        worldLayer.setScaleX(zoom);
+        worldLayer.setScaleY(zoom);
 
-                // bounce at road ends
-                if (x < ROAD_H_X1) { x = ROAD_H_X1; c.dir = +1; c.sprite.setHeadingDegrees(0); }
-                if (x > ROAD_H_X2) { x = ROAD_H_X2; c.dir = -1; c.sprite.setHeadingDegrees(180); }
+        worldLayer.setTranslateX(panX);
+        worldLayer.setTranslateY(panY);
 
-                c.sprite.setCenterPosition(x, y);
+    }
 
-            } else {
-                double x = ROAD_V_X;
-                double y = (c.sprite.getLayoutY() + CAR_H / 2.0) + (c.speed * c.dir);
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
 
-                // bounce at road ends
-                if (y < ROAD_V_Y1) { y = ROAD_V_Y1; c.dir = +1; c.sprite.setHeadingDegrees(90); }
-                if (y > ROAD_V_Y2) { y = ROAD_V_Y2; c.dir = -1; c.sprite.setHeadingDegrees(270); }
+    public void setNetwork(NetworkModel network) {
+        this.network = network;
+        redrawStaticLayers();
+    }
 
-                c.sprite.setCenterPosition(x, y);
+    private void redrawStaticLayers() {
+        if (network == null) return;
+
+        roadLayer.getChildren().clear();
+        trafficLightLayer.getChildren().clear();
+        trafficLightNodes.clear(); // important: rebuild TL circles on resize/reload
+
+        double w = getWidth();
+        double h = getHeight();
+        if (w <= 0 || h <= 0) return;
+
+        // compute scaling to fit convBoundary
+        double rangeX = network.maxX - network.minX;
+        double rangeY = network.maxY - network.minY;
+
+        scale = Math.min((w - 2 * margin) / rangeX, (h - 2 * margin) / rangeY);
+
+        // store for y-inversion
+        minX = network.minX;
+        maxY = network.maxY;
+
+        // draw roads
+        for (List<NetworkModel.Point> poly : network.polylines) {
+            Polyline line = new Polyline();
+            for (NetworkModel.Point p : poly) {
+                double sx = toScreenX(p.x());
+                double sy = toScreenY(p.y());
+                line.getPoints().addAll(sx, sy);
+            }
+            line.setStroke(Color.LIGHTGRAY);
+            line.setStrokeWidth(6);
+            roadLayer.getChildren().add(line);
+        }
+
+        // Create traffic light circles once, color updated in renderTrafficLights()
+        network.trafficLightNodes.forEach((id, p) -> {
+            Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 6, Color.GRAY);
+            trafficLightNodes.put(id, c);
+            trafficLightLayer.getChildren().add(c);
+        });
+    }
+
+    public void renderVehicles(List<Vehicle> vehicles) {
+        if (network == null) return;
+
+        for (Vehicle v : vehicles) {
+            String id = v.getId();
+            latestVehicles.put(id, v);
+            PositionVector p = v.getPositionVector();
+
+            double x = toScreenX(p.getX());
+            double y = toScreenY(p.getY());
+
+            Circle c = vehicleNodes.get(id);
+
+            // 1) Create circle if missing
+            if (c == null) {
+                c = new Circle(5, Color.YELLOW);
+                vehicleNodes.put(id, c);
+                vehicleLayer.getChildren().add(c);
+            }
+
+            // 2) Ensure tooltip exists (even for circles created earlier)
+            // Ensure tooltip exists for this vehicle
+            Tooltip tooltip = vehicleTooltips.get(id);
+            if (tooltip == null) {
+                tooltip = new Tooltip();
+                tooltip.setShowDelay(javafx.util.Duration.millis(200));
+                vehicleTooltips.put(id, tooltip);
+            }
+
+            // Always (re)install and always update text every tick
+            Tooltip.install(c, tooltip);
+            tooltip.setText(
+                    "Vehicle ID: " + id +
+                            "\nSpeed: " + String.format("%.2f", v.getSpeed()) + " m/s" +
+                            "\nEdge: " + v.getEdgeId()
+            );
+
+            // 3) Update position
+            c.setCenterX(x);
+            c.setCenterY(y);
+            if (!Boolean.TRUE.equals(c.getProperties().get("handlersInstalled"))) {
+                final String vehicleId = id;
+                final Circle node = c;
+
+                node.setOnMouseEntered(e -> {
+                    node.setRadius(6);
+                    node.setStroke(Color.BLACK);
+                    node.setStrokeWidth(1.5);
+                    setCursor(javafx.scene.Cursor.HAND);
+                    e.consume();
+                });
+
+                node.setOnMouseExited(e -> {
+                    onVehicleMouseExit(vehicleId, node);
+                    e.consume();
+                });
+
+                node.setOnMouseClicked(e -> {
+                    selectVehicle(vehicleId);
+                    e.consume();
+                });
+
+                c.getProperties().put("handlersInstalled", true);
+            }
+
+        }
+    }
+
+    // update traffic lights colors from SUMO state each tick
+    public void renderTrafficLights(List<TrafficLight> tls) {
+        if (network == null) return;
+
+        for (TrafficLight tl : tls) {
+            String id = tl.getId();
+
+            Circle c = trafficLightNodes.get(id);
+            if (c == null) {
+                // Not in our network list (ID mismatch) -> ignore for now
+                continue;
+            }
+
+            c.setFill(colorFromPhaseState(tl.getPhaseState()));
+        }
+    }
+
+    //Helper: pick ONE junction color from the full phase string (rGrG...)
+    private Color colorFromPhaseState(String state) {
+        if (state == null || state.isBlank()) return Color.GRAY;
+
+        // If any green exists -> show green
+        if (state.indexOf('G') >= 0 || state.indexOf('g') >= 0) return Color.LIMEGREEN;
+
+        // If any yellow exists -> show yellow
+        if (state.indexOf('y') >= 0 || state.indexOf('Y') >= 0) return Color.GOLD;
+
+        // Otherwise red
+        return Color.RED;
+    }
+
+    private void selectVehicle(String id) {
+        // Deselect old
+        if (selectedVehicleId != null) {
+            Circle old = vehicleNodes.get(selectedVehicleId);
+            if (old != null) {
+                old.setRadius(4);
+                old.setStroke(null);
             }
         }
-    }
 
-    private void addMovingCarOnHorizontalRoad(String path, double x, double y, int dir) {
-        CarSprite sprite = new CarSprite(path, CAR_W, CAR_H);
-        sprite.setCenterPosition(x, y);
-        sprite.setHeadingDegrees(dir > 0 ? 0 : 180);
-
-        MovingCar mc = new MovingCar();
-        mc.sprite = sprite;
-        mc.horizontal = true;
-        mc.dir = dir;
-        mc.speed = ThreadLocalRandom.current().nextDouble(0.2, 0.8);
-
-        cars.add(mc);
-        getChildren().add(sprite);
-    }
-
-    private void addMovingCarOnVerticalRoad(String path, double x, double y, int dir) {
-        CarSprite sprite = new CarSprite(path, CAR_W, CAR_H);
-        sprite.setCenterPosition(x, y);
-        sprite.setHeadingDegrees(dir > 0 ? 90 : 270);
-
-        MovingCar mc = new MovingCar();
-        mc.sprite = sprite;
-        mc.horizontal = false;
-        mc.dir = dir;
-        mc.speed = ThreadLocalRandom.current().nextDouble(0.2, 0.8);
-
-        cars.add(mc);
-        getChildren().add(sprite);
-    }
-
-    /** Called from ControlPanel: inject a random car ON a road and make it move */
-    public void injectRandomCarOnRoad() {
-        int idx = ThreadLocalRandom.current().nextInt(CarAssets.ORDERED.size());
-        String path = CarAssets.ORDERED.get(idx);
-
-        boolean horizontal = ThreadLocalRandom.current().nextBoolean();
-
-        if (horizontal) {
-            double x = ThreadLocalRandom.current().nextDouble(ROAD_H_X1 + 20, ROAD_H_X2 - 20);
-            int dir = ThreadLocalRandom.current().nextBoolean() ? +1 : -1;
-            addMovingCarOnHorizontalRoad(path, x, ROAD_H_Y, dir);
-        } else {
-            double y = ThreadLocalRandom.current().nextDouble(ROAD_V_Y1 + 20, ROAD_V_Y2 - 20);
-            int dir = ThreadLocalRandom.current().nextBoolean() ? +1 : -1;
-            addMovingCarOnVerticalRoad(path, ROAD_V_X, y, dir);
+        // Select new
+        selectedVehicleId = id;
+        Circle c = vehicleNodes.get(id);
+        if (c != null) {
+            c.setRadius(7);
+            c.setStroke(Color.RED);
+            c.setStrokeWidth(2);
         }
+    }
+    private void onVehicleMouseExit(String vehicleId, Circle c) {
+        if (!vehicleId.equals(selectedVehicleId)) {
+            c.setRadius(4);
+            c.setStroke(null);
+        }
+        setCursor(javafx.scene.Cursor.DEFAULT);
+    }
+
+
+    private void clearSelection() {
+        if (selectedVehicleId == null) return;
+
+        Circle c = vehicleNodes.get(selectedVehicleId);
+        if (c != null) {
+            c.setRadius(4);
+            c.setStroke(null);
+        }
+        selectedVehicleId = null;
+    }
+
+
+    private double toScreenX(double x) {
+        return margin + (x - minX) * scale;
+    }
+
+    // JavaFX y goes downward; SUMO y goes upward -> invert using maxY
+    private double toScreenY(double y) {
+        return margin + (maxY - y) * scale;
     }
 }
