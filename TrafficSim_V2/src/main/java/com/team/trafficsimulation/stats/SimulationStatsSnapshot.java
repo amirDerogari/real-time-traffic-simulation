@@ -1,10 +1,11 @@
 package com.team.trafficsimulation.stats;
 
 public class SimulationStatsSnapshot {
-    private final long simulationStep;
-    private final double averageSpeed;
-    private final double vehicleDensity;
-    private final int vehicleCount;
+
+    private final long simulationStep;    // Simulation time step or tick
+    private final double averageSpeed;    // Average speed of all vehicles
+    private final double vehicleDensity;  // Vehicle density in the simulation
+    private final int vehicleCount;       // Total number of vehicles
 
     public SimulationStatsSnapshot(long simulationStep,
                                    double averageSpeed,
@@ -16,7 +17,7 @@ public class SimulationStatsSnapshot {
         this.vehicleCount = vehicleCount;
     }
 
-    public long getSimulationStep() {
+    public long getSimulationStep() { // Returns the simulation step
         return simulationStep;
     }
 
@@ -28,7 +29,7 @@ public class SimulationStatsSnapshot {
         return vehicleDensity;
     }
 
-    public int getVehicleCount() {
+    public int getVehicleCount() { // Returns the number of vehicles
         return vehicleCount;
     }
 }

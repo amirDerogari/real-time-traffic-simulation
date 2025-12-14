@@ -9,27 +9,29 @@ import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
 import com.team.trafficsimulation.util.AppLogger;
 
 public class CsvStatsExporter implements StatsExporter {
-    private static final Logger LOG = AppLogger.getLogger(CsvStatsExporter.class);
+
+    private static final Logger LOG =
+            AppLogger.getLogger(CsvStatsExporter.class); // Class logger
 
     @Override
-    public void export(List<SimulationStatsSnapshot> snapshots, String targetPath) throws IOException {
-        LOG.info("CSV-Export gestartet: " + targetPath);
+    public void export(List<SimulationStatsSnapshot> snapshots,
+                       String targetPath) throws IOException {
 
-        try (FileWriter writer = new FileWriter(targetPath)) {
-            // Kopfzeile
-            writer.write("step,averageSpeed,vehicleDensity,vehicleCount\n");
+        LOG.info("CSV-Export gestartet: " + targetPath); // Log start
 
-            // Noch Dummy: echte Werte sind schon verfügbar, aber Logik prüfen wir später
-            for (SimulationStatsSnapshot snapshot : snapshots) {
+        try (FileWriter writer = new FileWriter(targetPath)) { // Auto-close writer
+
+            writer.write("step,averageSpeed,vehicleDensity,vehicleCount\n"); // CSV header
+
+            for (SimulationStatsSnapshot snapshot : snapshots) { // Iterate snapshots
                 String line = snapshot.getSimulationStep() + "," +
                         snapshot.getAverageSpeed() + "," +
                         snapshot.getVehicleDensity() + "," +
-                        snapshot.getVehicleCount() + "\n";
-                writer.write(line);
+                        snapshot.getVehicleCount() + "\n"; // Build CSV row
+                writer.write(line); // Write row
             }
         }
 
         LOG.info("CSV-Export beendet.");
     }
-
 }
