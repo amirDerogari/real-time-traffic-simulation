@@ -5,9 +5,8 @@ import java.util.List;
 
 import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
 
-public interface StatsExporter {
+public interface StatsExporter { // Exporter interface
 
     void export(List<SimulationStatsSnapshot> snapshots,
-                String targetPath) throws IOException;
-
+                String targetPath) throws IOException; // Export contract
 }

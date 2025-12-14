@@ -7,13 +7,17 @@ import java.util.logging.Logger;
 import com.team.trafficsimulation.stats.SimulationStatsSnapshot;
 import com.team.trafficsimulation.util.AppLogger;
 
-public class PdfStatsExporter implements StatsExporter {
-    private static final Logger LOG = AppLogger.getLogger(PdfStatsExporter.class);
+public class PdfStatsExporter implements StatsExporter { // PDF exporter placeholder
+
+    private static final Logger LOG =
+            AppLogger.getLogger(PdfStatsExporter.class); // Class logger
 
     @Override
-    public void export(List<SimulationStatsSnapshot> snapshots, String targetPath) throws IOException {
-        LOG.warning("PDF-Export ist noch nicht implementiert. Zielpfad: " + targetPath);
-        // TODO: später mit PDF-Bibliothek implementieren (z.B. iText, OpenPDF, o.ä.)
-    }
+    public void export(List<SimulationStatsSnapshot> snapshots,
+                       String targetPath) throws IOException {
 
+        LOG.warning(
+                "PDF-Export is not implemented yet. Target path: " + targetPath
+        ); // Inform about missing implementation
+    }
 }
