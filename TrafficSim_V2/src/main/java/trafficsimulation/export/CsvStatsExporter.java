@@ -16,6 +16,8 @@ public class CsvStatsExporter implements StatsExporter {
     @Override
     public void export(List<SimulationStatsSnapshot> snapshots,
                        String targetPath) throws IOException {
+        
+
 
         LOG.info("CSV-Export gestartet: " + targetPath); // Log start
 

@@ -29,10 +29,10 @@ public class AppLogger {
         }
 
         ConsoleHandler consoleHandler = new ConsoleHandler(); // Console handler
-        consoleHandler.setFormatter(new SimpleFormatter()); // Simple format
-        consoleHandler.setLevel(Level.ALL); // Allow all log levels
+        consoleHandler.setFormatter(new SimpleFormatter());
+        consoleHandler.setLevel(Level.INFO); // Allow all log levels
 
         rootLogger.addHandler(consoleHandler); // Add handler
-        rootLogger.setLevel(Level.ALL); // Enable all logs
+        rootLogger.setLevel(Level.INFO); // Enable all logs
     }
 }

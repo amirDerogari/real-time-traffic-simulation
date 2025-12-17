@@ -2,6 +2,8 @@ package trafficsimulation;
 
 import org.eclipse.sumo.libtraci.Simulation;
 import org.eclipse.sumo.libtraci.StringVector; //dynamic and can reserve memory
+import trafficsimulation.app.SimulationController;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +12,10 @@ import java.util.List;
 //Start and stop SUMO Simulation
 
 public class SimulationManager {
+
+    private final SimulationController simulationController =
+            new SimulationController();
+
 
     //Sumo and Net-Config
     private final String configPath;
@@ -66,8 +72,15 @@ public class SimulationManager {
     }
 
     //Step
-    public void step(){
+    public void step() {
+
+        //  SUMO einen Schritt weiter
         Simulation.step();
+
+        //  aktuelle Fahrzeuge holen
+        List<Vehicle> vehicles = getVehicles();
+
+        simulationController.collectStats(vehicles);
     }
 
     //Factory of Instances

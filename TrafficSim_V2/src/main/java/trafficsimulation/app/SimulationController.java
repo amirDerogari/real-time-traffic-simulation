@@ -1,42 +1,54 @@
-package trafficsimulation.app; // Application controller package
+package trafficsimulation.app;
 
-import trafficsimulation.Vehicle; // Vehicle wrapper
-import trafficsimulation.stats.StatsManager; // Statistics manager
-import trafficsimulation.stats.SimulationStatsSnapshot; // Stats snapshot
+import trafficsimulation.Vehicle;
+import trafficsimulation.stats.StatsManager;
+import trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.util.AppLogger;
+
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
-public class SimulationController { // Controls simulation statistics flow
+public class SimulationController {
+
+    private static final Logger LOG =
+            AppLogger.getLogger(SimulationController.class);
 
     private final StatsManager statsManager = new StatsManager(); // Statistics handler
     private long simulationStep = 0; // Simulation time step counter
 
+
     public SimulationStatsSnapshot collectStats(List<Vehicle> vehicles) {
 
+        // Calculate density per edge
         Map<String, Integer> densityPerEdge =
-                statsManager.calculateDensityPerEdge(vehicles); // Density per edge
+                statsManager.calculateDensityPerEdge(vehicles);
 
+        // Collect global statistics
         SimulationStatsSnapshot snapshot =
-                statsManager.collectStats(vehicles, simulationStep); // Global stats
+                statsManager.collectStats(vehicles, simulationStep);
 
-        System.out.println(
+
+        LOG.info(
                 "Step " + simulationStep +
                         " | AvgSpeed: " + snapshot.getAverageSpeed() +
                         " | Vehicles: " + snapshot.getVehicleCount()
-        ); // Console debug output
+        );
 
         for (Map.Entry<String, Integer> entry : densityPerEdge.entrySet()) {
-            System.out.println(
-                    "   Edge " + entry.getKey() + ": " + entry.getValue()
-            ); // Print edge density
+            LOG.fine(
+                    "Edge " + entry.getKey() +
+                            " | Vehicle count: " + entry.getValue()
+            );
         }
 
         simulationStep++; // Increase simulation step
-        return snapshot; // Return statistics snapshot
+        return snapshot;
     }
 
+
     public StatsManager getStatsManager() {
-        return statsManager; // Provide access to statistics manager
+        return statsManager;
     }
 }
