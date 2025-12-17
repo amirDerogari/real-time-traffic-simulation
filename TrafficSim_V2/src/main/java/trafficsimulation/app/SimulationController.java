@@ -4,6 +4,9 @@ import trafficsimulation.Vehicle;
 import trafficsimulation.stats.StatsManager;
 import trafficsimulation.stats.SimulationStatsSnapshot;
 import trafficsimulation.util.AppLogger;
+import trafficsimulation.export.StatsExporter;
+import trafficsimulation.export.CsvStatsExporter;
+import java.io.IOException;
 
 
 import java.util.List;
@@ -51,4 +54,15 @@ public class SimulationController {
     public StatsManager getStatsManager() {
         return statsManager;
     }
+
+    public void exportStatsToCsv(String filePath) {
+        StatsExporter exporter = new CsvStatsExporter();
+        try {
+            exporter.export(statsManager.getHistory(), filePath);
+            LOG.info("CSV export successful: " + filePath);
+        } catch (IOException e) {
+            LOG.severe("CSV export failed: " + e.getMessage());
+        }
+    }
+
 }

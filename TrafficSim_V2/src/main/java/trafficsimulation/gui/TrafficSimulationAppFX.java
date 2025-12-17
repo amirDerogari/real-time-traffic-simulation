@@ -38,9 +38,9 @@ public class TrafficSimulationAppFX extends Application {
         stage.setScene(scene);
         stage.show();
 
-        // 5) CSV export on application close (Milestone 2 proof)
-        //stage.setOnCloseRequest(event -> {
-           // simulationController.exportStatsToCsv("simulation_stats.csv");
-      //  });
+        // 5) CSV export on application close
+        stage.setOnCloseRequest(event -> {
+           simulationController.exportStatsToCsv("simulation_stats.csv");
+      });
     }
 }
