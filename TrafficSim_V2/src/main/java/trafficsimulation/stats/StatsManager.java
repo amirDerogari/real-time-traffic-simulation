@@ -1,6 +1,6 @@
-package trafficsimulation.stats; // Statistics package
+package trafficsimulation.stats;
 
-import trafficsimulation.Vehicle; // Vehicle wrapper
+import trafficsimulation.Vehicle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +19,7 @@ public class StatsManager { // Manages calculation and storage of statistics
         int vehicleCount = vehicles.size(); // Number of vehicles
 
         double averageSpeed = 0.0; // Default average speed
-        if (vehicleCount > 0) { // Avoid division by zero
+        if (vehicleCount > 0) {
             double speedSum = 0.0; // Sum of speeds
             for (Vehicle v : vehicles) {
                 speedSum += v.getSpeed(); // Read live speed from SUMO
@@ -27,14 +27,14 @@ public class StatsManager { // Manages calculation and storage of statistics
             averageSpeed = speedSum / vehicleCount; // Calculate average speed
         }
 
-        double density = vehicleCount; // Simple density for milestone 2
+        double density = vehicleCount;
 
         SimulationStatsSnapshot snapshot =
                 new SimulationStatsSnapshot(
-                        simulationStep, // Simulation step
-                        averageSpeed,   // Average speed
-                        density,        // Vehicle density
-                        vehicleCount    // Vehicle count
+                        simulationStep,
+                        averageSpeed,
+                        density,
+                        vehicleCount
                 );
 
         history.add(snapshot); // Store snapshot in history
@@ -47,7 +47,7 @@ public class StatsManager { // Manages calculation and storage of statistics
 
     public Map<String, Integer> calculateDensityPerEdge(List<Vehicle> vehicles) {
 
-        Map<String, Integer> densityPerEdge = new HashMap<>(); // Edge → count
+        Map<String, Integer> densityPerEdge = new HashMap<>();
 
         for (Vehicle v : vehicles) {
             String edgeId = v.getEdgeId(); // Current edge of vehicle
@@ -56,10 +56,13 @@ public class StatsManager { // Manages calculation and storage of statistics
                 continue; // Skip invalid edge IDs
             }
 
-            densityPerEdge.put(
-                    edgeId,
-                    densityPerEdge.getOrDefault(edgeId, 0) + 1 // Increase count
-            );
+            int count;
+            if(densityPerEdge.containsKey(edgeId)) {
+                count = densityPerEdge.get(edgeId);
+            } else {
+                count= 0;
+            }
+            densityPerEdge.put(edgeId, count+1);
         }
 
         return densityPerEdge; // Return density per edge

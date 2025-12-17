@@ -1,6 +1,7 @@
 package trafficsimulation.gui;
 
 import trafficsimulation.SimulationManager;
+import trafficsimulation.app.SimulationController;
 import trafficsimulation.gui.net.NetworkLoader;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -8,6 +9,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 public class TrafficSimulationAppFX extends Application {
+
+    private SimulationController simulationController;
 
     @Override
     public void start(Stage stage) {
@@ -20,7 +23,10 @@ public class TrafficSimulationAppFX extends Application {
         String configPath = "src/main/resources/beispiel2config.sumocfg";
         SimulationManager simManager = new SimulationManager(configPath);
 
-        // 3) Control panel now takes SimulationManager
+        // 3) Statistics controller (Person C)
+        simulationController = new SimulationController();
+
+        // 4) Control panel
         ControlPanel controlPanel = new ControlPanel(simManager, mapView);
 
         BorderPane root = new BorderPane();
@@ -31,5 +37,10 @@ public class TrafficSimulationAppFX extends Application {
         stage.setTitle("Real-Time Traffic Simulation");
         stage.setScene(scene);
         stage.show();
+
+        // 5) CSV export on application close
+        stage.setOnCloseRequest(event -> {
+           simulationController.exportStatsToCsv("simulation_stats.csv");
+      });
     }
 }
