@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
+//full ap wiring
 public class TrafficSimulationAppFX extends Application {
 
     private SimulationController simulationController;
@@ -15,30 +16,30 @@ public class TrafficSimulationAppFX extends Application {
     @Override
     public void start(Stage stage) {
 
-        // 1) Map
-        MapView mapView = new MapView();
-        mapView.setNetwork(NetworkLoader.loadFromResources("beispiel2.net.xml"));
+        //Map
+        MapView mapView = new MapView(); //create map view
+        mapView.setNetwork(NetworkLoader.loadFromResources("beispiel2.net.xml")); //load road network + draw static map
 
-        // 2) Backend manager (Caspar)
-        String configPath = "src/main/resources/beispiel2config.sumocfg";
-        SimulationManager simManager = new SimulationManager(configPath);
+        //Backend manager (Caspar)
+        String configPath = "src/main/resources/beispiel2config.sumocfg"; //path to SUMO config file
+        SimulationManager simManager = new SimulationManager(configPath); //backend manager to start/step/close SUMO
 
-        // 3) Statistics controller (Person C)
+        //Statistics controller (Caspar)
         simulationController = new SimulationController();
 
-        // 4) Control panel
-        ControlPanel controlPanel = new ControlPanel(simManager, mapView);
+        //Control panel
+        ControlPanel controlPanel = new ControlPanel(simManager, mapView); //right panel controlling simulation + rendering
 
-        BorderPane root = new BorderPane();
-        root.setCenter(mapView);
-        root.setRight(controlPanel);
+        BorderPane root = new BorderPane(); //main layout container
+        root.setCenter(mapView); //put map in center
+        root.setRight(controlPanel); //put controls on the right
 
-        Scene scene = new Scene(root, 1200, 800);
-        stage.setTitle("Real-Time Traffic Simulation");
-        stage.setScene(scene);
-        stage.show();
+        Scene scene = new Scene(root, 1200, 800); //create scene with fixed window size
+        stage.setTitle("Real-Time Traffic Simulation"); //window title
+        stage.setScene(scene); //attach scene to stage
+        stage.show(); //show window
 
-        // 5) CSV export on application close
+        //CSV export on application close
         stage.setOnCloseRequest(event -> {
            simulationController.exportStatsToCsv("simulation_stats.csv");
       });

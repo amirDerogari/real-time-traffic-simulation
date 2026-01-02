@@ -16,7 +16,7 @@ public class NetworkLoader {
             Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(in);
             doc.getDocumentElement().normalize();
 
-            // 1) Read convBoundary
+            //Read convBoundary
             Element location = (Element) doc.getElementsByTagName("location").item(0);
             String[] b = location.getAttribute("convBoundary").split(",");
             double minX = Double.parseDouble(b[0]);
@@ -24,7 +24,7 @@ public class NetworkLoader {
             double maxX = Double.parseDouble(b[2]);
             double maxY = Double.parseDouble(b[3]);
 
-            // 2) Read lane shapes (skip internal edges if you want)
+            //Read lane shapes (skip internal edges if you want)
             List<List<Point>> polylines = new ArrayList<>();
             NodeList edgeNodes = doc.getElementsByTagName("edge");
 
@@ -44,7 +44,7 @@ public class NetworkLoader {
                 }
             }
 
-            // 3) Read traffic-light junction positions
+            //Read traffic-light junction positions
             Map<String, Point> tlNodes = new HashMap<>();
             NodeList junctionNodes = doc.getElementsByTagName("junction");
             for (int i = 0; i < junctionNodes.getLength(); i++) {

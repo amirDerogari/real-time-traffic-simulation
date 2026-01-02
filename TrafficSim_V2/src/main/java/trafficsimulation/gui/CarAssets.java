@@ -5,7 +5,7 @@ import java.util.List;
 public final class CarAssets {
     private CarAssets() {}
 
-    // Your demo order (change order here whenever you want)
+    //demo order
     public static final List<String> ORDERED = List.of(
             "/images/cars/YellowCar.png",
             "/images/cars/BlackCar.png",

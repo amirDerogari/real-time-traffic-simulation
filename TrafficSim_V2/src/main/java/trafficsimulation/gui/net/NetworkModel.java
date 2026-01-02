@@ -3,6 +3,7 @@ package trafficsimulation.gui.net;
 import java.util.List;
 import java.util.Map;
 
+// this is a simple data container for everything the GUI needs to draw the map
 public class NetworkModel {
     public final double minX, minY, maxX, maxY;
     public final List<List<Point>> polylines;          // roads
@@ -16,5 +17,5 @@ public class NetworkModel {
         this.trafficLightNodes = trafficLightNodes;
     }
 
-    public record Point(double x, double y) {}
+    public record Point(double x, double y) {} //tiny immutable type to represent a 2D coordinate
 }

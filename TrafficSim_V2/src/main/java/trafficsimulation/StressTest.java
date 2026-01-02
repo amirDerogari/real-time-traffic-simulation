@@ -25,8 +25,8 @@ public class StressTest {
         StressTest test = new StressTest();
 
         System.out.println("Running traffic scenario");
-        test.goodTraffic(manager, tls.get(0), tls.get(1));
-        //test.badTraffic(manager, tls.get(0), tls.get(1));
+        //test.goodTraffic(manager, tls.get(0), tls.get(1));
+        test.badTraffic(manager, tls.get(0), tls.get(1));
 
         manager.closeSimulation();
     }
@@ -61,7 +61,7 @@ public class StressTest {
 
             //0=G; 1=g; 2=r
 
-            // long green phase for main road
+            //
             if (step % 60 < 10) { //cyle (10 from 60 steps for mainroad)
                 tlB.setPhaseIndex(0);
                 tlA.setPhaseIndex(0);
