@@ -11,7 +11,7 @@ import trafficsimulation.util.AppLogger;
 public class CsvStatsExporter implements StatsExporter {
 
     private static final Logger LOG =
-            AppLogger.getLogger(CsvStatsExporter.class); // Class logger
+            AppLogger.getLogger(CsvStatsExporter.class); // Logger for this class (used to log info, warnings, and errors)
 
     @Override
     public void export(List<SimulationStatsSnapshot> snapshots,

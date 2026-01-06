@@ -11,6 +11,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import trafficsimulation.app.SimulationController;
 
 import java.util.List;
 
@@ -18,14 +19,16 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
 
     private final SimulationManager simManager; //reference to the backend, so the panel can call startSimulation(), step(), closeSimulation(), etc
     private final MapView mapView; //reference to the map, so the panel can tell it to render vehicles/traffic lights each tick
+    private final SimulationController simulationController;
 
     private Timeline timeline; //JavaFX timer that repeatedly runs update loop (tick)
     private boolean running = false; //basic state guard - prevent starting twice / stopping when already stopped
 
     //build the right-side control UI and wire it to the simulation
-    public ControlPanel(SimulationManager simManager, MapView mapView) {
+    public ControlPanel(SimulationManager simManager, MapView mapView, SimulationController simulationController) {
         this.simManager = simManager; //store backend reference
         this.mapView = mapView; //store map reference
+        this.simulationController = simulationController;
 
         setPadding(new Insets(12)); //inner padding around the panel
         setSpacing(10); //vertical space between UI elements
@@ -69,6 +72,7 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         try {
             simManager.step(); //advance SUMO by one step
             List<Vehicle> vehicles = simManager.getVehicles(); //fetch current vehicles from SUMO
+            simulationController.collectStats(vehicles);
             mapView.renderVehicles(vehicles); //draw/update vehicles on the map
             List<trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights(); //fetch current traffic lights
             mapView.renderTrafficLights(tls); //update traffic light colors on the map

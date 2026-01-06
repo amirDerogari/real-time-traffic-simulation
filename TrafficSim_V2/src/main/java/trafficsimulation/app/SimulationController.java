@@ -1,14 +1,15 @@
 package trafficsimulation.app;
 
 import trafficsimulation.Vehicle;
-import trafficsimulation.stats.StatsManager;
-import trafficsimulation.stats.SimulationStatsSnapshot;
-import trafficsimulation.util.AppLogger;
-import trafficsimulation.export.StatsExporter;
 import trafficsimulation.export.CsvStatsExporter;
+import trafficsimulation.export.PdfStatsExporter;
+import trafficsimulation.export.StatsExporter;
+import trafficsimulation.stats.SimulationStatsSnapshot;
+import trafficsimulation.stats.StatsManager;
+import trafficsimulation.util.AppLogger;
+
 import java.io.IOException;
-
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -21,6 +22,8 @@ public class SimulationController {
     private final StatsManager statsManager = new StatsManager(); // Statistics handler
     private long simulationStep = 0; // Simulation time step counter
 
+    // Store all snapshots here, so export has data
+    private final List<SimulationStatsSnapshot> history = new ArrayList<>();
 
     public SimulationStatsSnapshot collectStats(List<Vehicle> vehicles) {
 
@@ -32,6 +35,8 @@ public class SimulationController {
         SimulationStatsSnapshot snapshot =
                 statsManager.collectStats(vehicles, simulationStep);
 
+        // Save snapshot into history list
+        history.add(snapshot);
 
         LOG.info(
                 "Step " + simulationStep +
@@ -50,18 +55,31 @@ public class SimulationController {
         return snapshot;
     }
 
-
     public StatsManager getStatsManager() {
         return statsManager;
     }
 
+
+
     public void exportStatsToCsv(String filePath) {
         StatsExporter exporter = new CsvStatsExporter();
         try {
+            LOG.info("Exporting CSV. History size = " + statsManager.getHistory().size());
             exporter.export(statsManager.getHistory(), filePath);
             LOG.info("CSV export successful: " + filePath);
         } catch (IOException e) {
             LOG.severe("CSV export failed: " + e.getMessage());
+        }
+    }
+
+
+    public void exportStatsToPdf(String filePath) {
+        StatsExporter pdfExporter = new PdfStatsExporter();
+        try {
+            pdfExporter.export(history, filePath);
+            LOG.info("PDF export successful: " + filePath);
+        } catch (IOException e) {
+            LOG.severe("PDF export failed: " + e.getMessage());
         }
     }
 
