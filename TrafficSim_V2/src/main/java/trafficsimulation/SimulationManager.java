@@ -45,7 +45,7 @@ public class SimulationManager {
 
 
         }
-        String[] command = {"sumo", "-c", configPath, "--start", "--delay", "200"};
+        String[] command = {"sumo-gui", "-c", configPath, "--start", "--delay", "200"};
         StringVector commandVector = new StringVector(command);
 
         System.out.println("Starting SUMO");
@@ -100,7 +100,6 @@ public class SimulationManager {
 
         StringVector ids = org.eclipse.sumo.libtraci.TrafficLight.getIDList();
         List<TrafficLight> trafficlights = new ArrayList<>();
-
 
         for (String id : ids) {
             trafficlights.add(new TrafficLight(id));

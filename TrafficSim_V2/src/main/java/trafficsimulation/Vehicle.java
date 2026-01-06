@@ -9,11 +9,12 @@ public class Vehicle {
     public Vehicle(String id) {
         this.id = id;
     }
+
+    //Getter methods
     public String getId() {
         return this.id;
     }
 
-    //Getter methods
     public double getSpeed() {
         return org.eclipse.sumo.libtraci.Vehicle.getSpeed(this.id);
     }

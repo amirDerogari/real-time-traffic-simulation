@@ -1,34 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2025-12-11T16:59:49.163207+01:00 by Eclipse SUMO netedit 1.25.0
+<!-- generated on 2026-01-06T19:57:36.290448+01:00 by Eclipse SUMO netedit 1.25.0
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="C:\Users\cas03\Desktop\Java Projekt1\TrafficSim_V2\src\main\resources\beispiel2.net.xml"/>
+        <sumo-net-file value="C:\Users\cas03\Desktop\real-time-traffic-simulation\TrafficSim_V2\src\main\resources\beispiel2.net.xml"/>
     </input>
 
     <output>
-        <output-file value="C:\Users\cas03\Desktop\Java Projekt1\TrafficSim_V2\src\main\resources\beispiel2.net.xml"/>
+        <output-file value="C:\Users\cas03\Desktop\real-time-traffic-simulation\TrafficSim_V2\src\main\resources\beispiel2.net.xml"/>
     </output>
 
     <processing>
+        <geometry.min-radius.fix.railways value="false"/>
+        <geometry.avoid-overlap value="false"/>
+        <geometry.max-grade.fix value="false"/>
         <offset.disable-normalization value="true"/>
+        <lefthand value="0"/>
     </processing>
 
     <junctions>
         <no-turnarounds value="true"/>
+        <junctions.corner-detail value="5"/>
+        <junctions.limit-turn-speed value="5.50"/>
+        <rectangular-lane-cut value="0"/>
     </junctions>
 
-    <netedit>
-        <new-network value="false"/>
-    </netedit>
+    <pedestrian>
+        <walkingareas value="0"/>
+    </pedestrian>
 
 </neteditConfiguration>
 -->
 
-<net version="1.20" junctionCornerDetail="5" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
+<net version="1.20" junctionCornerDetail="5" limitTurnSpeed="5.50" avoidOverlap="0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
-    <location netOffset="0.00,0.00" convBoundary="-87.96,-68.58,74.51,24.94" origBoundary="10000000000.00,10000000000.00,-10000000000.00,-10000000000.00" projParameter="!"/>
+    <location netOffset="0.00,0.00" convBoundary="-87.96,-68.58,74.51,24.94" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
 
     <edge id=":J1_0" function="internal">
         <lane id=":J1_0_0" index="0" speed="13.89" length="15.56" shape="-31.00,25.18 -46.56,25.38"/>
@@ -128,7 +135,7 @@
         <lane id="E8_0" index="0" speed="13.89" length="32.30" shape="-6.87,-36.28 -6.87,-68.58"/>
     </edge>
 
-    <tlLogic id="J4" type="static" programID="0" offset="0">
+    <tlLogic id="bottomLight" type="static" programID="0" offset="0">
         <phase duration="27" state="rrGGGr"/>
         <phase duration="3"  state="rrGyyr"/>
         <phase duration="27" state="GGGrrr"/>
@@ -136,7 +143,7 @@
         <phase duration="27" state="GrrrGG"/>
         <phase duration="3"  state="yrrrGy"/>
     </tlLogic>
-    <tlLogic id="J5" type="static" programID="0" offset="0">
+    <tlLogic id="topLight" type="static" programID="0" offset="0">
         <phase duration="42" state="GgrrGG"/>
         <phase duration="3"  state="yyrrGy"/>
         <phase duration="42" state="rrGGGr"/>
@@ -176,20 +183,20 @@
 
     <connection from="-E4" to="-E6" fromLane="0" toLane="0" via=":J1_2_0" dir="r" state="m"/>
     <connection from="-E4" to="-E0" fromLane="0" toLane="0" via=":J1_3_0" dir="l" state="m"/>
-    <connection from="-E5" to="-E4" fromLane="0" toLane="0" via=":J4_0_0" tl="J4" linkIndex="0" dir="r" state="o"/>
-    <connection from="-E5" to="E8" fromLane="0" toLane="0" via=":J4_1_0" tl="J4" linkIndex="1" dir="s" state="O"/>
-    <connection from="-E6" to="-E5" fromLane="0" toLane="0" via=":J5_4_0" tl="J5" linkIndex="4" dir="r" state="O"/>
-    <connection from="-E6" to="E7" fromLane="0" toLane="0" via=":J5_5_0" tl="J5" linkIndex="5" dir="s" state="O"/>
-    <connection from="-E7" to="E6" fromLane="0" toLane="0" via=":J5_0_0" tl="J5" linkIndex="0" dir="s" state="O"/>
-    <connection from="-E7" to="-E5" fromLane="0" toLane="0" via=":J5_1_0" tl="J5" linkIndex="1" dir="l" state="o"/>
-    <connection from="-E8" to="E5" fromLane="0" toLane="0" via=":J4_2_0" tl="J4" linkIndex="2" dir="R" state="O"/>
-    <connection from="-E8" to="-E4" fromLane="0" toLane="0" via=":J4_3_0" tl="J4" linkIndex="3" dir="s" state="o"/>
+    <connection from="-E5" to="-E4" fromLane="0" toLane="0" via=":J4_0_0" tl="bottomLight" linkIndex="0" dir="r" state="o"/>
+    <connection from="-E5" to="E8" fromLane="0" toLane="0" via=":J4_1_0" tl="bottomLight" linkIndex="1" dir="s" state="O"/>
+    <connection from="-E6" to="-E5" fromLane="0" toLane="0" via=":J5_4_0" tl="topLight" linkIndex="4" dir="r" state="O"/>
+    <connection from="-E6" to="E7" fromLane="0" toLane="0" via=":J5_5_0" tl="topLight" linkIndex="5" dir="s" state="O"/>
+    <connection from="-E7" to="E6" fromLane="0" toLane="0" via=":J5_0_0" tl="topLight" linkIndex="0" dir="s" state="O"/>
+    <connection from="-E7" to="-E5" fromLane="0" toLane="0" via=":J5_1_0" tl="topLight" linkIndex="1" dir="l" state="o"/>
+    <connection from="-E8" to="E5" fromLane="0" toLane="0" via=":J4_2_0" tl="bottomLight" linkIndex="2" dir="R" state="O"/>
+    <connection from="-E8" to="-E4" fromLane="0" toLane="0" via=":J4_3_0" tl="bottomLight" linkIndex="3" dir="s" state="o"/>
     <connection from="E0" to="E4" fromLane="0" toLane="0" via=":J1_4_0" dir="r" state="M"/>
     <connection from="E0" to="-E6" fromLane="0" toLane="0" via=":J1_5_0" dir="s" state="M"/>
-    <connection from="E4" to="E8" fromLane="0" toLane="0" via=":J4_4_0" tl="J4" linkIndex="4" dir="s" state="o"/>
-    <connection from="E4" to="E5" fromLane="0" toLane="0" via=":J4_5_0" tl="J4" linkIndex="5" dir="l" state="o"/>
-    <connection from="E5" to="E7" fromLane="0" toLane="0" via=":J5_2_0" tl="J5" linkIndex="2" dir="r" state="o"/>
-    <connection from="E5" to="E6" fromLane="0" toLane="0" via=":J5_3_0" tl="J5" linkIndex="3" dir="l" state="o"/>
+    <connection from="E4" to="E8" fromLane="0" toLane="0" via=":J4_4_0" tl="bottomLight" linkIndex="4" dir="s" state="o"/>
+    <connection from="E4" to="E5" fromLane="0" toLane="0" via=":J4_5_0" tl="bottomLight" linkIndex="5" dir="l" state="o"/>
+    <connection from="E5" to="E7" fromLane="0" toLane="0" via=":J5_2_0" tl="topLight" linkIndex="2" dir="r" state="o"/>
+    <connection from="E5" to="E6" fromLane="0" toLane="0" via=":J5_3_0" tl="topLight" linkIndex="3" dir="l" state="o"/>
     <connection from="E6" to="-E0" fromLane="0" toLane="0" via=":J1_0_0" dir="s" state="M"/>
     <connection from="E6" to="E4" fromLane="0" toLane="0" via=":J1_1_0" dir="l" state="m"/>
 

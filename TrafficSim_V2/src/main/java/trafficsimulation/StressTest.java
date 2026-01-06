@@ -26,10 +26,23 @@ public class StressTest {
 
         System.out.println("Running traffic scenario");
         //test.goodTraffic(manager, tls.get(0), tls.get(1));
-        test.badTraffic(manager, tls.get(0), tls.get(1));
-
+        //test.badTraffic(manager, tls.get(0), tls.get(1));
+        test.phaseSwitching(manager, tls.get(0), tls.get(1));
         manager.closeSimulation();
     }
+
+    public void phaseSwitching(SimulationManager sim, TrafficLight tlB, TrafficLight tlA) {
+
+        System.out.println("Starting");
+
+        for (int step = 0; step < 3600; step++) {
+            sim.step();
+            tlA.forceNextPhase();
+            tlB.forceNextPhase();
+        }
+        System.out.println("finished.\n");
+    }
+
 
     public void goodTraffic(SimulationManager sim, TrafficLight tlB, TrafficLight tlA) {
 

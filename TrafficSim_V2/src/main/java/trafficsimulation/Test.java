@@ -20,7 +20,26 @@ public class Test {
 
         manager.step();
 
-        for(int i=0; i<30; i++) {
+        //EXAMPLE force TL-States (Success!)
+        List<TrafficLight> tls = manager.getAllTrafficLights();
+        for (TrafficLight tl : tls) {
+            System.out.println(tl.getId());
+        }
+
+        for (int steps = 0; steps < 100; steps++) {
+            manager.step();
+            if(steps%5==0){
+                System.out.println("Forcing");
+                tls.get(0).forceNextPhase(); //top/bottom
+            }
+        }
+
+
+
+
+
+        /* EXAMPLE PRINT POSITIONS
+        for(int i=0; i<1000; i++) {
             List<Vehicle> vehicles = manager.getVehicles();
             if(i%8 == 0 && !vehicles.isEmpty()) {
                 for(Vehicle vehicle : vehicles){
@@ -28,7 +47,10 @@ public class Test {
                 }
             }
             manager.step();
+
         }
+        */
+
         manager.closeSimulation();
 
     }
