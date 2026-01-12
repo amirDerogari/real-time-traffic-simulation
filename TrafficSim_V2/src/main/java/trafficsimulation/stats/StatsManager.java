@@ -19,10 +19,23 @@ public class StatsManager { // Manages calculation and storage of statistics
         int vehicleCount = vehicles.size(); // Number of vehicles
 
         double averageSpeed = 0.0; // Default average speed
+        double minSpeed = 0.0;     // Minimum speed of vehicles
+        double maxSpeed = 0.0;     // Maximum speed of vehicles
+
         if (vehicleCount > 0) {
             double speedSum = 0.0; // Sum of speeds
+            minSpeed = Double.MAX_VALUE; // Start with very high value
+
             for (Vehicle v : vehicles) {
-                speedSum += v.getSpeed(); // Read live speed from SUMO
+                double speed = v.getSpeed(); // Read live speed from SUMO
+                speedSum += speed;
+
+                if (speed < minSpeed) {
+                    minSpeed = speed;
+                }
+                if (speed > maxSpeed) {
+                    maxSpeed = speed;
+                }
             }
             averageSpeed = speedSum / vehicleCount; // Calculate average speed
         }
@@ -34,12 +47,15 @@ public class StatsManager { // Manages calculation and storage of statistics
                         simulationStep,
                         averageSpeed,
                         density,
-                        vehicleCount
+                        vehicleCount,
+                        minSpeed,
+                        maxSpeed
                 );
 
         history.add(snapshot); // Store snapshot in history
         return snapshot; // Return snapshot
     }
+
 
     public List<SimulationStatsSnapshot> getHistory() {
         return Collections.unmodifiableList(history); // Return read-only history

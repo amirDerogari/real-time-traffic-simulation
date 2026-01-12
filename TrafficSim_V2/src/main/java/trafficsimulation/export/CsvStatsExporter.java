@@ -16,24 +16,27 @@ public class CsvStatsExporter implements StatsExporter {
     @Override
     public void export(List<SimulationStatsSnapshot> snapshots,
                        String targetPath) throws IOException {
-        
 
 
         LOG.info("CSV-Export gestartet: " + targetPath); // Log start
 
         try (FileWriter writer = new FileWriter(targetPath)) { // Auto-close writer
 
-            writer.write("step,averageSpeed,vehicleDensity,vehicleCount\n"); // CSV header
+            writer.write("step,averageSpeed,vehicleDensity,vehicleCount,minSpeed,maxSpeed\n"); // CSV header
+
 
             for (SimulationStatsSnapshot snapshot : snapshots) { // Iterate snapshots
                 String line = snapshot.getSimulationStep() + "," +
                         snapshot.getAverageSpeed() + "," +
                         snapshot.getVehicleDensity() + "," +
-                        snapshot.getVehicleCount() + "\n"; // Build CSV row
+                        snapshot.getVehicleCount() + "," +
+                        snapshot.getMinSpeed() + "," +
+                        snapshot.getMaxSpeed() + "\n"; // Build CSV row
                 writer.write(line); // Write row
             }
-        }
 
-        LOG.info("CSV-Export beendet.");
+
+            LOG.info("CSV-Export beendet.");
+        }
     }
 }

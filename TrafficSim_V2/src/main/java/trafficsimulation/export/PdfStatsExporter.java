@@ -46,15 +46,17 @@ public class PdfStatsExporter implements StatsExporter {
             document.add(new Paragraph("Total snapshots: " + (snapshots == null ? 0 : snapshots.size())));
             document.add(new Paragraph(" "));
 
-            // Table: 4 columns
-            PdfPTable table = new PdfPTable(4);
+            // Table: 6 columns
+            PdfPTable table = new PdfPTable(6);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{1.2f, 2.2f, 2.2f, 2.0f});
+            table.setWidths(new float[]{1.0f, 2.0f, 2.0f, 1.6f, 1.6f, 1.6f});
 
             addHeaderCell(table, "Step");
             addHeaderCell(table, "Average Speed");
             addHeaderCell(table, "Vehicle Density");
             addHeaderCell(table, "Vehicle Count");
+            addHeaderCell(table, "Min Speed");
+            addHeaderCell(table, "Max Speed");
 
             if (snapshots != null) {
                 for (SimulationStatsSnapshot s : snapshots) {
@@ -62,6 +64,8 @@ public class PdfStatsExporter implements StatsExporter {
                     table.addCell(new Phrase(String.valueOf(s.getAverageSpeed())));
                     table.addCell(new Phrase(String.valueOf(s.getVehicleDensity())));
                     table.addCell(new Phrase(String.valueOf(s.getVehicleCount())));
+                    table.addCell(new Phrase(String.valueOf(s.getMinSpeed())));
+                    table.addCell(new Phrase(String.valueOf(s.getMaxSpeed())));
                 }
             }
 
