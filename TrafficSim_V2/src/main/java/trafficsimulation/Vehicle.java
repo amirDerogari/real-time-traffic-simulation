@@ -4,13 +4,17 @@ import org.eclipse.sumo.libtraci.StringVector;
 
 public class Vehicle {
 
-    //Attributes and Constructor
+    //Attributes
     private final String id;
+    private final String type;
+
+    //Constructor
     public Vehicle(String id) {
         this.id = id;
+        this.type = org.eclipse.sumo.libtraci.Vehicle.getTypeID(id);
     }
 
-    //Getter methods
+    //Getter
     public String getId() {
         return this.id;
     }
@@ -27,26 +31,15 @@ public class Vehicle {
         return org.eclipse.sumo.libtraci.Vehicle.getRoadID(this.id);
     }
 
+    public String getRoadId() {return org.eclipse.sumo.libtraci.Vehicle.getRoadID(this.id);}
+
+    //@return Type (DEFAULT_VEHTYPE, bus_standard, emergency)
+    public String getTypeId() {return this.type;}
+
 
     //Setter methods
     public void setSpeed(double speed) {
         org.eclipse.sumo.libtraci.Vehicle.setSpeed(this.id, speed);
     }
-
-    //necessary?
-    public void changeLane(int laneIndex, double duration) {
-        org.eclipse.sumo.libtraci.Vehicle.changeLane(this.id, laneIndex, duration);
-    }
-
-
-    //inject vehicle!
-    //amount == length of list getVehicles
-
-    //to change route
-    public void setRoute(StringVector edgeIds) {
-        org.eclipse.sumo.libtraci.Vehicle.setRoute(this.id, edgeIds);
-    }
-
-    //setroute overload?
 }
 

@@ -13,13 +13,10 @@ import java.util.List;
 
 public class SimulationManager {
 
-    private final SimulationController simulationController =
-            new SimulationController();
-
-
-    //Sumo and Net-Config
+    //Attributes
+    private List<TrafficLight> trafficLights = new ArrayList<>();
+    private final SimulationController simulationController = new SimulationController();
     private final String configPath;
-
     // connection flag (Mojtaba added)
     private volatile boolean connected = false;
 
@@ -33,18 +30,22 @@ public class SimulationManager {
         return connected;
     }
 
-    //Simulation Start (Delay input still Here!)
+    //Get TrafficLights from SUMO (called once when starting simulation)
+    public void initializeTrafficLights() {
+        trafficLights = getAllTrafficLights();
+    }
+
+    //Simulation start
     public void startSimulation() {
 
-            // preload native libs (Mojtaba added)
-            try {
-                Simulation.preloadLibraries();
-            } catch (Exception e) {
-                System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
-                throw new RuntimeException(e);
-
-
+        // preload native libs (Mojtaba added)
+        try {
+            Simulation.preloadLibraries();
+        } catch (Exception e) {
+            System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
+            throw new RuntimeException(e);
         }
+
         String[] command = {"sumo-gui", "-c", configPath, "--start", "--delay", "200"};
         StringVector commandVector = new StringVector(command);
 
@@ -54,6 +55,8 @@ public class SimulationManager {
         // set connected after start (Mojtaba added)
         connected = true;
         System.out.println("TraCI connected");
+
+        initializeTrafficLights();
 
     }
 
@@ -71,14 +74,30 @@ public class SimulationManager {
         }
     }
 
-    //Step
     public void step() {
 
-        //  SUMO einen Schritt weiter
+        int busCount = 0;
         Simulation.step();
 
-        //  aktuelle Fahrzeuge holen
+        //  get vehicles and check for emergency
         List<Vehicle> vehicles = getVehicles();
+        for (Vehicle v : vehicles) {
+            if(v.getTypeId().equals("emergency")){
+                if(v.getRoadId().equals("WI1")){
+                    trafficLights.get(0).setPhaseIndex(0);
+                }
+                if(v.getRoadId().equals("ONETOTWO")){
+                    trafficLights.get(1).setPhaseIndex(0);
+                }
+            }
+            //bus counter
+            if(v.getTypeId().equals("bus_standard")){
+                busCount++;
+
+                //GIVE BUSCOUNT TO SIM-CONTROLLER ?
+                //exp. simulationController.updateBusStats(busCount);
+            }
+        }
 
         simulationController.collectStats(vehicles);
     }
@@ -107,4 +126,29 @@ public class SimulationManager {
         return trafficlights;
     }
 
+    //spawn emergency Vehicle
+    public void spawnEmergencyVehicle(){
+        StringVector routeEdges = new StringVector();
+        //define route
+        routeEdges.add("EM_IN");
+        routeEdges.add("CIL2");
+        routeEdges.add("WI1");
+        routeEdges.add("ONETOTWO");
+        routeEdges.add("EO2");
+        org.eclipse.sumo.libtraci.Route.add("emergency_route", routeEdges);
+
+        //fix ID: only one Emergency vehicle should be alive!
+        if (!org.eclipse.sumo.libtraci.Vehicle.getIDList().contains("em_1")){
+            org.eclipse.sumo.libtraci.Vehicle.add("em_1", "emergency_route", "emergency", "now");
+        } else {
+          System.out.println("emergency car already exists");
+        }
+    }
+
+    //rushHour: let main traffic through CR1,CR2
+    public void runRushHour(){
+        System.out.println("runRushHour");
+        trafficLights.get(0).forceGreenPhase(0,80);
+        trafficLights.get(1).forceGreenPhase(0,80);
+    }
 }

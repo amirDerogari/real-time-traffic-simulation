@@ -2,17 +2,13 @@ package trafficsimulation;
 
 import org.eclipse.sumo.libtraci.Simulation;
 
-import java.util.List;
-
 public class Test {
 
-
-    private static final String CONFIG2 = "src/main/resources/beispiel2config.sumocfg";
+    private static final String CONFIG2 = "src/main/resources/final_map.sumocfg";
 
     public static void main(String[] args) {
 
-
-        //SIMPLE DEMONSTRATION OF VEHICLE FUNCTIONS
+        //SIMPLE DEMONSTRATIONS
 
         Simulation.preloadLibraries();
         SimulationManager manager = new SimulationManager(CONFIG2);
@@ -20,7 +16,21 @@ public class Test {
 
         manager.step();
 
-        //EXAMPLE force TL-States (Success!)
+
+        for(int step=0; step<1000; step++ ) {
+            manager.step();
+
+            if (step == 80 || step == 200) {
+                //manager.spawnEmergencyVehicle();
+                manager.runRushHour();
+                //green: CR1=0:GGgrrrGGgrrr and CR2=0:GGgrrrGGgrrr
+                //towards CR1: WI1, towards CR2: ONETOTWO
+
+            }
+        }
+
+        /*
+        //EXAMPLE force TL-States (Success!) on Beispiel2
         List<TrafficLight> tls = manager.getAllTrafficLights();
         for (TrafficLight tl : tls) {
             System.out.println(tl.getId());
@@ -33,9 +43,7 @@ public class Test {
                 tls.get(0).forceNextPhase(); //top/bottom
             }
         }
-
-
-
+        /*
 
 
         /* EXAMPLE PRINT POSITIONS
@@ -47,7 +55,6 @@ public class Test {
                 }
             }
             manager.step();
-
         }
         */
 

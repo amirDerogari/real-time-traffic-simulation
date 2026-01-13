@@ -5,14 +5,15 @@ import org.eclipse.sumo.libtraci.TraCILogicVector;
 
 public class TrafficLight {
 
-    //Attributes and Constructor
+    //Attributes
     private final String id;
 
+    //Constructor
     public TrafficLight(String id) {
         this.id = id;
     }
 
-    //getter
+    //Getter
     public String getId() {
         return this.id;
     }
@@ -21,30 +22,17 @@ public class TrafficLight {
         return org.eclipse.sumo.libtraci.TrafficLight.getRedYellowGreenState(this.id);
     }
 
-    //@return Program ID with Default value 0
-    public String getProgramId() {
-        return org.eclipse.sumo.libtraci.TrafficLight.getProgram(this.id);
-    }
-
     public int getPhase(){ return org.eclipse.sumo.libtraci.TrafficLight.getPhase(this.id); }
 
-    //setter
-    //@param eg. "GgrrGG"
-    public void setPhaseState(String state) {
-        org.eclipse.sumo.libtraci.TrafficLight.setRedYellowGreenState(this.id, state);
-    }
-
-    //@param Related phase index to each phaseState
+    //Setter
     public void setPhaseIndex(int phaseIndex) {
         org.eclipse.sumo.libtraci.TrafficLight.setPhase(this.id, phaseIndex);
     }
 
-    //@param Default = 0, example = night/day
-    public void setProgram(String programID) {
-        org.eclipse.sumo.libtraci.TrafficLight.setProgram(this.id, programID);
-    }
+    public void setPhaseDuration(int phaseDuration) { org.eclipse.sumo.libtraci.TrafficLight.setPhaseDuration(this.id, phaseDuration); }
 
-    //nextPhase (for GUI Button)
+
+    //NextPhase (for GUI Button)
     public void forceNextPhase(){
         //String programID = this.getProgramId(); //default = 0
         TraCILogicVector logicVector = org.eclipse.sumo.libtraci.TrafficLight.getCompleteRedYellowGreenDefinition(this.id); //TraciLogicVector
@@ -58,5 +46,16 @@ public class TrafficLight {
         System.out.println("next phase: " + nextPhase);
         this.setPhaseIndex(nextPhase);
     }
+
+
+    //rush-hour function: prioritize traffic on main stream
+    public void forceGreenPhase(int phaseIndex, int duration){
+        setPhaseIndex(phaseIndex);
+        setPhaseDuration(duration);
+        //phases indexes that make main lane green:
+        //TL_CR1 = 0
+        //TL_CR2 = 0
+    }
+
 
 }
