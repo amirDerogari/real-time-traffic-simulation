@@ -11,6 +11,7 @@ import java.util.Map;
 public class StatsManager { // Manages calculation and storage of statistics
 
     private final List<SimulationStatsSnapshot> history = new ArrayList<>(); // Statistics history
+    private final List<EdgeStatsSnapshot> edgeHistory = new ArrayList<>(); // Edge statistics history
 
     public SimulationStatsSnapshot collectStats(
             List<Vehicle> vehicles,
@@ -82,5 +83,31 @@ public class StatsManager { // Manages calculation and storage of statistics
         }
 
         return densityPerEdge; // Return density per edge
+    }
+
+    public List<EdgeStatsSnapshot> collectEdgeStats(
+            List<Vehicle> vehicles,
+            long simulationStep
+    ) {
+        Map<String, Integer> densityPerEdge = calculateDensityPerEdge(vehicles);
+        List<EdgeStatsSnapshot> snapshots = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> entry : densityPerEdge.entrySet()) {
+            EdgeStatsSnapshot snapshot =
+                    new EdgeStatsSnapshot(
+                            simulationStep,
+                            entry.getKey(),
+                            entry.getValue()
+                    );
+
+            edgeHistory.add(snapshot);
+            snapshots.add(snapshot);
+        }
+
+        return snapshots;
+    }
+
+    public List<EdgeStatsSnapshot> getEdgeHistory() {
+        return Collections.unmodifiableList(edgeHistory);
     }
 }

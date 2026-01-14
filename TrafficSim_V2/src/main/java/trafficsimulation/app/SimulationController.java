@@ -35,6 +35,8 @@ public class SimulationController {
         SimulationStatsSnapshot snapshot =
                 statsManager.collectStats(vehicles, simulationStep);
 
+        statsManager.collectEdgeStats(vehicles, simulationStep);
+
         // Save snapshot into history list
         history.add(snapshot);
 

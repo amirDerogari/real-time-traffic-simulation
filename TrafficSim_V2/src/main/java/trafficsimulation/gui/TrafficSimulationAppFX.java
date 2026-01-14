@@ -7,11 +7,20 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import trafficsimulation.export.EdgeCsvStatsExporter;
+import java.util.logging.Logger;
+import trafficsimulation.util.AppLogger;
+
+
+import java.io.IOException;
 
 //full ap wiring
 public class TrafficSimulationAppFX extends Application {
 
     private SimulationController simulationController;
+    private static final Logger LOG =
+            AppLogger.getLogger(TrafficSimulationAppFX.class);
+
 
     @Override
     public void start(Stage stage) {
@@ -43,6 +52,17 @@ public class TrafficSimulationAppFX extends Application {
         stage.setOnCloseRequest(event -> {
             simulationController.exportStatsToCsv("simulation_stats.csv");
             simulationController.exportStatsToPdf("simulation_stats.pdf");
+
+            try {
+                new EdgeCsvStatsExporter()
+                        .export(
+                                simulationController.getStatsManager().getEdgeHistory(),
+                                "edge_stats.csv"
+                        );
+            } catch (IOException e) {
+                LOG.severe("Edge CSV export failed: " + e.getMessage());
+
+            }
         });
 
     }
