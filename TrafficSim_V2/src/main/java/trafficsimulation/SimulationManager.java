@@ -3,8 +3,7 @@ package trafficsimulation;
 import org.eclipse.sumo.libtraci.Simulation;
 import org.eclipse.sumo.libtraci.StringVector; //dynamic and can reserve memory
 import trafficsimulation.app.SimulationController;
-
-
+import trafficsimulation.ScenarioMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +22,13 @@ public class SimulationManager {
     // connection flag (Mojtaba added)
     private volatile boolean connected = false;
 
+    //Scenarios
+    private ScenarioMode scenarioMode = ScenarioMode.NORMAL;
+    private TrafficLight scenarioTlA;
+    private TrafficLight scenarioTlB;
+    private int scenarioStep = 0;
+
+
     //Constructor
     public SimulationManager(String configPath) {
         this.configPath = configPath;
@@ -32,6 +38,60 @@ public class SimulationManager {
     public boolean isConnected() {
         return connected;
     }
+
+    //add scenario setters/getters (Mojtaba added)
+    public void setScenarioMode(ScenarioMode mode) {
+        this.scenarioMode = (mode == null) ? ScenarioMode.NORMAL : mode;
+    }
+
+    public ScenarioMode getScenarioMode() {
+        return scenarioMode;
+    }
+
+    // Which two TLs the scenario controls (like StressTest)
+    public void setScenarioTrafficLights(TrafficLight tlA, TrafficLight tlB) {
+        this.scenarioTlA = tlA;
+        this.scenarioTlB = tlB;
+    }
+
+    // Reset counter when starting a new run
+    public void resetScenario() {
+        this.scenarioStep = 0;
+    }
+
+    // apply scenario each step
+    public void applyScenario() {
+        if (scenarioMode == ScenarioMode.NORMAL) return;
+        if (scenarioTlA == null || scenarioTlB == null) return;
+
+        scenarioStep++;
+
+        switch (scenarioMode) {
+            case GOOD_TRAFFIC -> {
+                // cycle length 50, green for 40 steps
+                if (scenarioStep % 50 < 40) {
+                    scenarioTlA.setPhaseIndex(0);
+                    scenarioTlB.setPhaseIndex(0);
+                } else {
+                    scenarioTlA.setPhaseIndex(2);
+                    scenarioTlB.setPhaseIndex(2);
+                }
+            }
+            case BAD_TRAFFIC -> {
+                // cycle length 60, green for 10 steps
+                if (scenarioStep % 60 < 10) {
+                    scenarioTlA.setPhaseIndex(0);
+                    scenarioTlB.setPhaseIndex(0);
+                } else {
+                    scenarioTlA.setPhaseIndex(2);
+                    scenarioTlB.setPhaseIndex(2);
+                }
+            }
+            default -> { /* NORMAL does nothing */ }
+        }
+    }
+
+
 
     //Simulation Start (Delay input still Here!)
     public void startSimulation() {
@@ -76,6 +136,8 @@ public class SimulationManager {
 
         //  SUMO einen Schritt weiter
         Simulation.step();
+        applyScenario(); //Now scenario logic runs automatically every tick (Mojtaba added)
+
 
         //  aktuelle Fahrzeuge holen
         List<Vehicle> vehicles = getVehicles();

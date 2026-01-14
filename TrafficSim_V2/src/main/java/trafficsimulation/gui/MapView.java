@@ -111,8 +111,8 @@ public class MapView extends Pane {
 
             Object target = e.getTarget();
 
-            boolean clickedVehicle = (target instanceof Circle) && vehicleNodes.containsValue((Circle) target);
-            boolean clickedTrafficLight = (target instanceof Circle) && trafficLightNodes.containsValue((Circle) target);
+            boolean clickedVehicle = (target instanceof Circle) && vehicleNodes.containsValue((Circle) target); // true if the user clicked a Circle AND that Circle is one of the vehicle circles created
+            boolean clickedTrafficLight = (target instanceof Circle) && trafficLightNodes.containsValue((Circle) target); // true if the user clicked a Circle AND that Circle is one of the traffic light circles created
 
             // Clear selection unless a vehicle circle was clicked
             if (!clickedVehicle && !clickedTrafficLight) { //if the circle is not a vehicle or TL
@@ -148,6 +148,19 @@ public class MapView extends Pane {
     //inject the loaded road network into the MapView
     public void setNetwork(NetworkModel network) {
         this.network = network; //store NetworkModel
+
+        // clean old state
+        vehicleLayer.getChildren().clear();
+        trafficLightLayer.getChildren().clear();
+
+        vehicleNodes.clear();
+        trafficLightNodes.clear();
+        vehicleTooltips.clear();
+        latestVehicles.clear();
+
+        selectedVehicleId = null;
+        selectedTrafficLightId = null;
+        selectedTrafficLightNode = null;
         redrawStaticLayers(); //immediately redraw the static map elements
     }
 
@@ -346,6 +359,7 @@ public class MapView extends Pane {
         selectedVehicleId = null; //set to null so that no vehicle is selected
     }
 
+    // select a traffic light (called when a TL circle is clicked)
     private void selectTrafficLight(String id, Circle node) {
         // clear old highlight
         if (selectedTrafficLightNode != null) {
@@ -353,21 +367,22 @@ public class MapView extends Pane {
             selectedTrafficLightNode.setStrokeWidth(0);
         }
 
-        selectedTrafficLightId = id;
-        selectedTrafficLightNode = node;
+        selectedTrafficLightId = id; // store the selected traffic light ID
+        selectedTrafficLightNode = node; // store the selected circle node (so we can un-highlight later)
 
         // highlight
         node.setStroke(Color.WHITE);
         node.setStrokeWidth(2);
     }
 
+    // clears traffic light selection
     private void clearTrafficLightSelection() {
         if (selectedTrafficLightNode != null) {
             selectedTrafficLightNode.setStroke(null);
             selectedTrafficLightNode.setStrokeWidth(0);
         }
-        selectedTrafficLightNode = null;
-        selectedTrafficLightId = null;
+        selectedTrafficLightNode = null; // no selected node anymore
+        selectedTrafficLightId = null; // no selected ID anymore
     }
 
 
