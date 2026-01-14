@@ -38,15 +38,16 @@ public class SimulationManager {
     //Simulation start
     public void startSimulation() {
 
-        // preload native libs (Mojtaba added)
-        try {
-            Simulation.preloadLibraries();
-        } catch (Exception e) {
-            System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
+            // preload native libs (Mojtaba added)
+            try {
+                Simulation.preloadLibraries();
+            } catch (Exception e) {
+                System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
+                throw new RuntimeException(e);
 
-        String[] command = {"sumo-gui", "-c", configPath, "--start", "--delay", "200"};
+
+        }
+        String[] command = {"sumo", "-c", configPath, "--start", "--delay", "200"};
         StringVector commandVector = new StringVector(command);
 
         System.out.println("Starting SUMO");

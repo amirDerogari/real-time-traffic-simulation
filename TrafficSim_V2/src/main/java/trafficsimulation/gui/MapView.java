@@ -17,6 +17,8 @@ import java.util.Map;
 public class MapView extends Pane {
 
     private String selectedVehicleId = null;
+    private String selectedTrafficLightId = null;
+    private Circle selectedTrafficLightNode = null;
     private final Group roadLayer = new Group();
     private final Group trafficLightLayer = new Group();
     private final Group vehicleLayer = new Group();
@@ -107,12 +109,19 @@ public class MapView extends Pane {
                 return;
             }
 
+            Object target = e.getTarget();
+
+            boolean clickedVehicle = (target instanceof Circle) && vehicleNodes.containsValue((Circle) target); // true if the user clicked a Circle AND that Circle is one of the vehicle circles created
+            boolean clickedTrafficLight = (target instanceof Circle) && trafficLightNodes.containsValue((Circle) target); // true if the user clicked a Circle AND that Circle is one of the traffic light circles created
+
             // Clear selection unless a vehicle circle was clicked
-            if (!(e.getTarget() instanceof Circle) //when a circle is clicked
-                    || !vehicleNodes.containsValue((Circle) e.getTarget())) { // circle that is not a Vehicle
+            if (!clickedVehicle && !clickedTrafficLight) { //if the circle is not a vehicle or TL
                 clearSelection(); //deselect
+                clearTrafficLightSelection();
             }
         });
+
+
 
         // redraw roads when window is resized
         widthProperty().addListener((obs, o, n) -> redrawStaticLayers());
@@ -132,9 +141,26 @@ public class MapView extends Pane {
     private double clamp(double value, double min, double max) {return Math.max(min, Math.min(max, value)); //force zoom to stay in range (not less than min/ more than max, otherwise it returns value)
     }
 
+    public String getSelectedTrafficLightId() {
+        return selectedTrafficLightId;
+    }
+
     //inject the loaded road network into the MapView
     public void setNetwork(NetworkModel network) {
         this.network = network; //store NetworkModel
+
+        // clean old state
+        vehicleLayer.getChildren().clear();
+        trafficLightLayer.getChildren().clear();
+
+        vehicleNodes.clear();
+        trafficLightNodes.clear();
+        vehicleTooltips.clear();
+        latestVehicles.clear();
+
+        selectedVehicleId = null;
+        selectedTrafficLightId = null;
+        selectedTrafficLightNode = null;
         redrawStaticLayers(); //immediately redraw the static map elements
     }
 
@@ -177,6 +203,11 @@ public class MapView extends Pane {
         // Create traffic light circles once, color updated in renderTrafficLights()
         network.trafficLightNodes.forEach((id, p) -> {
             Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 6, Color.GRAY); //create a circle
+
+            c.setOnMouseClicked(e -> {
+                selectTrafficLight(id, c);
+                e.consume();
+            });
             trafficLightNodes.put(id, c); //store it here for late to update the same circle’s color when the SUMO phase changes
             trafficLightLayer.getChildren().add(c); //add circle to trafficLightLayer so it becomes visible
         });
@@ -276,15 +307,15 @@ public class MapView extends Pane {
     private Color colorFromPhaseState(String state) {
         if (state == null || state.isBlank()) return Color.GRAY;
 
-        // If any green exists -> show green
-        if (state.indexOf('G') >= 0 || state.indexOf('g') >= 0) return Color.LIMEGREEN;
-
-        // If any yellow exists -> show yellow
-        if (state.indexOf('y') >= 0 || state.indexOf('Y') >= 0) return Color.GOLD;
-
-        // Otherwise red
-        return Color.RED;
+        char s = Character.toLowerCase(state.charAt(0));
+        return switch (s) {
+            case 'g' -> Color.LIMEGREEN; // If any green exists -> show green
+            case 'y' -> Color.GOLD; // If any yellow exists -> show yellow
+            case 'r' -> Color.RED; // If any red exists -> show red
+            default -> Color.GRAY; // Otherwise gray
+        };
     }
+
 
     //handle the highlighting
     private void selectVehicle(String id) {
@@ -326,6 +357,32 @@ public class MapView extends Pane {
             c.setStroke(null);
         }
         selectedVehicleId = null; //set to null so that no vehicle is selected
+    }
+
+    // select a traffic light (called when a TL circle is clicked)
+    private void selectTrafficLight(String id, Circle node) {
+        // clear old highlight
+        if (selectedTrafficLightNode != null) {
+            selectedTrafficLightNode.setStroke(null);
+            selectedTrafficLightNode.setStrokeWidth(0);
+        }
+
+        selectedTrafficLightId = id; // store the selected traffic light ID
+        selectedTrafficLightNode = node; // store the selected circle node (so we can un-highlight later)
+
+        // highlight
+        node.setStroke(Color.WHITE);
+        node.setStrokeWidth(2);
+    }
+
+    // clears traffic light selection
+    private void clearTrafficLightSelection() {
+        if (selectedTrafficLightNode != null) {
+            selectedTrafficLightNode.setStroke(null);
+            selectedTrafficLightNode.setStrokeWidth(0);
+        }
+        selectedTrafficLightNode = null; // no selected node anymore
+        selectedTrafficLightId = null; // no selected ID anymore
     }
 
 
