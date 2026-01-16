@@ -22,13 +22,12 @@ public class CsvStatsExporter implements StatsExporter {
 
         try (FileWriter writer = new FileWriter(targetPath)) { // Auto-close writer
 
-            writer.write("step,averageSpeed,vehicleDensity,vehicleCount,minSpeed,maxSpeed\n"); // CSV header
+            writer.write("step,averageSpeed,vehicleCount,minSpeed,maxSpeed\n"); // CSV header
 
 
             for (SimulationStatsSnapshot snapshot : snapshots) { // Iterate snapshots
                 String line = snapshot.getSimulationStep() + "," +
                         snapshot.getAverageSpeed() + "," +
-                        snapshot.getVehicleDensity() + "," +
                         snapshot.getVehicleCount() + "," +
                         snapshot.getMinSpeed() + "," +
                         snapshot.getMaxSpeed() + "\n"; // Build CSV row

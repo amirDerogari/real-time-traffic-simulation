@@ -41,13 +41,12 @@ public class StatsManager { // Manages calculation and storage of statistics
             averageSpeed = speedSum / vehicleCount; // Calculate average speed
         }
 
-        double density = vehicleCount;
+
 
         SimulationStatsSnapshot snapshot =
                 new SimulationStatsSnapshot(
                         simulationStep,
                         averageSpeed,
-                        density,
                         vehicleCount,
                         minSpeed,
                         maxSpeed
@@ -68,6 +67,7 @@ public class StatsManager { // Manages calculation and storage of statistics
 
         for (Vehicle v : vehicles) {
             String edgeId = v.getEdgeId(); // Current edge of vehicle
+
 
             if (edgeId == null || edgeId.isEmpty()) {
                 continue; // Skip invalid edge IDs

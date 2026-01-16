@@ -7,6 +7,8 @@ import trafficsimulation.export.StatsExporter;
 import trafficsimulation.stats.SimulationStatsSnapshot;
 import trafficsimulation.stats.StatsManager;
 import trafficsimulation.util.AppLogger;
+import trafficsimulation.export.VehiclePositionCsvExporter;
+
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +27,10 @@ public class SimulationController {
     // Store all snapshots here, so export has data
     private final List<SimulationStatsSnapshot> history = new ArrayList<>();
 
+
+
     public SimulationStatsSnapshot collectStats(List<Vehicle> vehicles) {
+
 
         // Calculate density per edge
         Map<String, Integer> densityPerEdge =
@@ -52,6 +57,13 @@ public class SimulationController {
                             " | Vehicle count: " + entry.getValue()
             );
         }
+
+        try {
+            new VehiclePositionCsvExporter().export(simulationStep, vehicles, "vehicle_positions.csv");
+        } catch (IOException e) {
+            LOG.severe("Vehicle position export failed: " + e.getMessage());
+        }
+
 
         simulationStep++; // Increase simulation step
         return snapshot;
