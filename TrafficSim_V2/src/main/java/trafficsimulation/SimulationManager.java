@@ -3,6 +3,7 @@ package trafficsimulation;
 import org.eclipse.sumo.libtraci.Simulation;
 import org.eclipse.sumo.libtraci.StringVector; //dynamic and can reserve memory
 import trafficsimulation.app.SimulationController;
+import trafficsimulation.stats.SimulationStatsSnapshot;
 
 
 import java.util.ArrayList;
@@ -13,6 +14,9 @@ import java.util.List;
 
 public class SimulationManager {
 
+    private final List<SimulationStatsSnapshot> statsHistory = new ArrayList<>();
+
+    //Sumo and Net-Config
     //Attributes
     private List<TrafficLight> trafficLights = new ArrayList<>();
     private final SimulationController simulationController = new SimulationController();
@@ -101,7 +105,11 @@ public class SimulationManager {
             }
         }
 
-        simulationController.collectStats(vehicles);
+        SimulationStatsSnapshot snapshot =
+                simulationController.collectStats(vehicles);
+
+        statsHistory.add(snapshot);
+
     }
 
     //Factory of Instances

@@ -8,10 +8,12 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
+
 //full ap wiring
 public class TrafficSimulationAppFX extends Application {
 
     private SimulationController simulationController;
+
 
     @Override
     public void start(Stage stage) {
@@ -28,7 +30,7 @@ public class TrafficSimulationAppFX extends Application {
         simulationController = new SimulationController();
 
         //Control panel
-        ControlPanel controlPanel = new ControlPanel(simManager, mapView); //right panel controlling simulation + rendering
+        ControlPanel controlPanel = new ControlPanel(simManager, mapView, simulationController); //right panel controlling simulation + rendering
 
         BorderPane root = new BorderPane(); //main layout container
         root.setCenter(mapView); //put map in center
@@ -39,9 +41,12 @@ public class TrafficSimulationAppFX extends Application {
         stage.setScene(scene); //attach scene to stage
         stage.show(); //show window
 
-        //CSV export on application close
+        //CSV und PDF export on application close
         stage.setOnCloseRequest(event -> {
-           simulationController.exportStatsToCsv("simulation_stats.csv");
-      });
+            simulationController.exportStatsToCsv("simulation_stats.csv");
+            simulationController.exportStatsToPdf("simulation_stats.pdf");
+            simulationController.exportVehiclePositionsToCsv("vehicle_positions.csv");
+        });
+
     }
 }
