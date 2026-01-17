@@ -45,6 +45,7 @@ public class TrafficSimulationAppFX extends Application {
         stage.setOnCloseRequest(event -> {
             simulationController.exportStatsToCsv("simulation_stats.csv");
             simulationController.exportStatsToPdf("simulation_stats.pdf");
+            simulationController.exportVehiclePositionsToCsv("vehicle_positions.csv");
         });
 
     }

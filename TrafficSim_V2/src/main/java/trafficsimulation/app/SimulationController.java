@@ -8,6 +8,8 @@ import trafficsimulation.stats.SimulationStatsSnapshot;
 import trafficsimulation.stats.StatsManager;
 import trafficsimulation.util.AppLogger;
 import trafficsimulation.export.VehiclePositionCsvExporter;
+import trafficsimulation.stats.VehiclePositionSnapshot;
+
 
 
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
 
 public class SimulationController {
 
@@ -24,12 +27,36 @@ public class SimulationController {
     private final StatsManager statsManager = new StatsManager(); // Statistics handler
     private long simulationStep = 0; // Simulation time step counter
 
+    private List<VehiclePositionSnapshot> lastNonEmptyVehicleSnapshots = List.of();
+    private long lastNonEmptyStep = -1;
+
+
+
+
     // Store all snapshots here, so export has data
     private final List<SimulationStatsSnapshot> history = new ArrayList<>();
 
 
 
     public SimulationStatsSnapshot collectStats(List<Vehicle> vehicles) {
+
+        if (!vehicles.isEmpty()) {
+            List<VehiclePositionSnapshot> snaps = new ArrayList<>();
+            for (Vehicle v : vehicles) {
+                snaps.add(new VehiclePositionSnapshot(
+                        simulationStep,
+                        v.getId(),
+                        v.getEdgeId(),
+                        v.getSpeed()
+                ));
+            }
+            lastNonEmptyVehicleSnapshots = snaps;
+            lastNonEmptyStep = simulationStep;
+        }
+
+
+
+
 
 
         // Calculate density per edge
@@ -40,7 +67,6 @@ public class SimulationController {
         SimulationStatsSnapshot snapshot =
                 statsManager.collectStats(vehicles, simulationStep);
 
-        statsManager.collectEdgeStats(vehicles, simulationStep);
 
         // Save snapshot into history list
         history.add(snapshot);
@@ -58,21 +84,11 @@ public class SimulationController {
             );
         }
 
-        try {
-            new VehiclePositionCsvExporter().export(simulationStep, vehicles, "vehicle_positions.csv");
-        } catch (IOException e) {
-            LOG.severe("Vehicle position export failed: " + e.getMessage());
-        }
 
 
         simulationStep++; // Increase simulation step
         return snapshot;
     }
-
-    public StatsManager getStatsManager() {
-        return statsManager;
-    }
-
 
 
     public void exportStatsToCsv(String filePath) {
@@ -96,5 +112,18 @@ public class SimulationController {
             LOG.severe("PDF export failed: " + e.getMessage());
         }
     }
+
+    public void exportVehiclePositionsToCsv(String filePath) {
+        VehiclePositionCsvExporter exporter = new VehiclePositionCsvExporter();
+        try {
+            exporter.export(lastNonEmptyVehicleSnapshots, filePath);
+            LOG.info("Vehicle positions export successful: " + filePath);
+        } catch (IOException e) {
+            LOG.severe("Vehicle positions export failed: " + e.getMessage());
+        }
+    }
+
+
+
 
 }
