@@ -18,10 +18,10 @@ public class TrafficSimulationAppFX extends Application {
 
         //Map
         MapView mapView = new MapView(); //create map view
-        mapView.setNetwork(NetworkLoader.loadFromResources("beispiel2.net.xml")); //load road network + draw static map
+        mapView.setNetwork(NetworkLoader.loadFromResources("final_map.net.xml")); //load road network + draw static map
 
         //Backend manager (Caspar)
-        String configPath = "src/main/resources/beispiel2config.sumocfg"; //path to SUMO config file
+        String configPath = "src/main/resources/final_map.sumocfg"; //path to SUMO config file
         SimulationManager simManager = new SimulationManager(configPath); //backend manager to start/step/close SUMO
 
         //Statistics controller (Caspar)

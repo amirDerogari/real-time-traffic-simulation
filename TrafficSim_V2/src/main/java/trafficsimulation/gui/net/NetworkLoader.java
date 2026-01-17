@@ -47,17 +47,44 @@ public class NetworkLoader {
             //Read traffic-light junction positions
             Map<String, Point> tlNodes = new HashMap<>();
             NodeList junctionNodes = doc.getElementsByTagName("junction");
+
             for (int i = 0; i < junctionNodes.getLength(); i++) {
                 Element junc = (Element) junctionNodes.item(i);
+
                 if (!"traffic_light".equals(junc.getAttribute("type"))) continue;
 
-                String id = junc.getAttribute("id");
+                // Some nets have junction@tl (tlLogic id), some don't.
+                // If tl exists -> use it, else use junction id.
+                String tlId = junc.getAttribute("tl");
+                if (tlId == null || tlId.isBlank()) {
+                    tlId = junc.getAttribute("id");
+                }
+                if (!tlId.startsWith("TL_")) {
+                    tlId = "TL_" + tlId;
+                }
                 double x = Double.parseDouble(junc.getAttribute("x"));
                 double y = Double.parseDouble(junc.getAttribute("y"));
-                tlNodes.put(id, new Point(x, y));
+                tlNodes.put(tlId, new Point(x, y));
+            }
+            // to see in console to debug if there is a problem with TL
+            System.out.println("Loaded TL nodes: " + tlNodes.keySet());
+
+            // Read junction shapes (to visually connect roads at intersections)
+            List<List<Point>> junctionPolygons = new ArrayList<>();
+
+            for (int i = 0; i < junctionNodes.getLength(); i++) {
+                Element junc = (Element) junctionNodes.item(i);
+
+                String shape = junc.getAttribute("shape");
+                if (shape == null || shape.isBlank()) continue;
+
+                // Optional: skip internal junctions
+                // if (junc.getAttribute("id").startsWith(":")) continue;
+
+                junctionPolygons.add(parseShape(shape));
             }
 
-            return new NetworkModel(minX, minY, maxX, maxY, polylines, tlNodes);
+            return new NetworkModel(minX, minY, maxX, maxY, polylines, junctionPolygons, tlNodes);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to load network: " + resourceName, e);

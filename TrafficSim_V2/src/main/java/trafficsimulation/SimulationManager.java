@@ -57,6 +57,7 @@ public class SimulationManager {
         connected = true;
         System.out.println("TraCI connected");
 
+
         initializeTrafficLights();
 
     }
@@ -126,6 +127,14 @@ public class SimulationManager {
         }
         return trafficlights;
     }
+
+    //Changing TL Phase (temporarily added by Mojtaba to check if it works)
+    public void nextPhase(String tlId) {
+        int current = org.eclipse.sumo.libtraci.TrafficLight.getPhase(tlId);
+        int next = (current + 1) % 3; // or use real phase count
+        org.eclipse.sumo.libtraci.TrafficLight.setPhase(tlId, next);
+    }
+
 
     //spawn emergency Vehicle
     public void spawnEmergencyVehicle(){

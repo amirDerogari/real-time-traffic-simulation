@@ -11,11 +11,6 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import javafx.scene.control.ComboBox;
-import trafficsimulation.ScenarioMode;
-import trafficsimulation.TrafficLight;
-import trafficsimulation.MapScenario;
-import trafficsimulation.gui.net.NetworkLoader;
 
 
 import java.util.List;
@@ -26,11 +21,9 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
     private final MapView mapView; //reference to the map, so the panel can tell it to render vehicles/traffic lights each tick
     private Timeline timeline; //JavaFX timer that repeatedly runs update loop (tick)
     private boolean running = false; //basic state guard - prevent starting twice / stopping when already stopped
-    private final ComboBox<ScenarioMode> scenarioBox = new ComboBox<>(); // dropdown to choose a scenario mode
-    private final ComboBox<MapScenario> mapBox = new ComboBox<>(); // dropdown to choose which map configuration to load
-    private boolean scenarioInitialized = false; // flag to prevent scenario logic from running before initial setup is finished (while still building the UI)
     private final Label selectedTlIdLabel = new Label("Selected TL: none"); // label that shows the currently selected traffic light ID
     private final Label selectedTlStateLabel = new Label("State: -"); // label that shows the selected traffic light’s current state
+    private final Label actionStatus = new Label("");
 
 
     //build the right-side control UI and wire it to the simulation
@@ -46,31 +39,56 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         Label title = new Label("Controls");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"); // title styling
 
-        Label mapTitle = new Label("Map");
-        mapTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"); // title styling
-
-        mapBox.getItems().addAll(MapScenario.BEISPIEL2, MapScenario.STAU); // add two map options to the ComboBox list
-        mapBox.setValue(MapScenario.BEISPIEL2); // set the default selected option to BEISPIEL2
-        mapBox.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
-
         Button startBtn = new Button("Start Simulation"); //start button
         startBtn.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
+        startBtn.setOnAction(e -> startSimulation()); //on click: start simulation + timeline
 
         Button stopBtn = new Button("Stop Simulation"); //stop button
         stopBtn.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
-
-        startBtn.setOnAction(e -> startSimulation()); //on click: start simulation + timeline
         stopBtn.setOnAction(e -> stopSimulation()); //on click: stop timeline + close simulation
 
-        Label scenarioTitle = new Label("Scenario");
-        scenarioTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"); // title styling
+        Button rushHourBtn = new Button("Enable Rush Hour");
+        rushHourBtn.setMaxWidth(Double.MAX_VALUE);
+        rushHourBtn.setOnAction(e -> {
+            if (!simManager.isConnected()) {
+                actionStatus.setText("Start the simulation first.");
+                return;
+            }
+            simManager.runRushHour();
+            actionStatus.setText("Rush hour enabled.");
+        });
 
-        scenarioBox.getItems().addAll(ScenarioMode.NORMAL, ScenarioMode.GOOD_TRAFFIC, ScenarioMode.BAD_TRAFFIC); // add three scenario options to the ComboBox list
-        scenarioBox.setValue(ScenarioMode.NORMAL); // set NORMAL as default scenario
-        scenarioBox.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
+        Button emergencyBtn = new Button("Spawn Emergency Vehicle");
+        emergencyBtn.setMaxWidth(Double.MAX_VALUE);
+        emergencyBtn.setOnAction(e -> {
+            if (!simManager.isConnected()) {
+                actionStatus.setText("Start the simulation first.");
+                return;
+            }
+            simManager.spawnEmergencyVehicle();
+            actionStatus.setText("Emergency vehicle spawned (or already exists).");
+        });
 
-        scenarioBox.setOnAction(e -> simManager.setScenarioMode(scenarioBox.getValue())); // when user picks a scenario, send the selected ScenarioMode to the backend
+        Button nextPhaseBtn = new Button("Next Phase");
+        nextPhaseBtn.setMaxWidth(Double.MAX_VALUE);
+        nextPhaseBtn.setOnAction(e -> {
+            if (!simManager.isConnected()) {
+                actionStatus.setText("Start the simulation first.");
+                return;
+            }
+            String tlId = mapView.getSelectedTrafficLightId();
+            if (tlId == null) {
+                actionStatus.setText("Select a traffic light on the map first.");
+                return;
+            }
 
+            // Caspar must add in SimulationManager
+            simManager.nextPhase(tlId);
+
+            actionStatus.setText("Next phase for TL: " + tlId);
+        });
+
+        actionStatus.setStyle("-fx-text-fill: #cfcfcf;");
 
         Label tlTitle = new Label("Traffic Light Info"); // title label for TL info section
         tlTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"); // title styling
@@ -82,36 +100,15 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         VBox spacer = new VBox(); // empty spacer region
         VBox.setVgrow(spacer, Priority.ALWAYS); //spacer expands to push buttons to top
 
-        getChildren().addAll(title, new Separator(), startBtn, stopBtn, new Separator(), mapTitle, mapBox, new Separator(), scenarioTitle, scenarioBox, new Separator(), tlTitle, selectedTlIdLabel, selectedTlStateLabel, spacer); //add everything to this VBox
+        getChildren().addAll(title, new Separator(), startBtn, stopBtn, new Separator(), rushHourBtn, emergencyBtn, nextPhaseBtn, actionStatus, new Separator(), tlTitle, selectedTlIdLabel, selectedTlStateLabel, spacer); //add everything to this VBox
     }
 
     private void startSimulation() {
         if (running) return; //prevent starting twice
+        mapView.resetDynamicLayers();
         running = true; //mark simulation as running
 
-
-        // choose config + net
-        String configPath;
-        String netFile;
-
-        if (mapBox.getValue() == MapScenario.STAU) {
-            configPath = "src/main/resources/stauconfig.sumocfg";
-            netFile = "stau.net.xml";
-        } else {
-            configPath = "src/main/resources/beispiel2config.sumocfg";
-            netFile = "beispiel2.net.xml";
-        }
-
-        // recreate backend
-        simManager = new SimulationManager(configPath);
-
-        // reload map
-        mapView.setNetwork(NetworkLoader.loadFromResources(netFile));
-
-        scenarioInitialized = false; // temporarily disable scenario-change handler so they don’t trigger during this reset
-        simManager.resetScenario(); // reset the backend scenario settings back to a default/clean state
-        simManager.setScenarioMode(scenarioBox.getValue()); // apply the currently selected ScenarioMode from the dropdown to the backend
-
+        actionStatus.setText("Starting simulation...");
 
         // Start SUMO on a background thread so the JavaFX UI thread doesn't freeze
         new Thread(simManager::startSimulation, "SUMO-Start-Thread").start();
@@ -123,16 +120,8 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
     }
 
     private void tick() { //every 100ms from the Timeline
-        if (!simManager.isConnected()) return; //If SUMO not connected yet, do nothing (prevent spam)
-        if (!scenarioInitialized) {
-            List<TrafficLight> tls = simManager.getAllTrafficLights();
-            if (tls.size() >= 2) {
-                simManager.setScenarioTrafficLights(tls.get(0), tls.get(1)); // same as StressTest
-                simManager.resetScenario();
-                scenarioInitialized = true;
-            }
-        }
-
+        if (!simManager.isConnected())
+            return; //If SUMO not connected yet, do nothing (prevent spam)
 
         try {
             simManager.step(); //advance SUMO by one step
@@ -141,7 +130,6 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
             List<trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights(); //fetch current traffic lights
             mapView.renderTrafficLights(tls); //update traffic light colors on the map
             updateTrafficLightInfo(tls);
-
 
         }
         // If SUMO closes unexpectedly, stop spamming
@@ -200,5 +188,6 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
 
         // Close SUMO / TraCI connection
         simManager.closeSimulation();
+        actionStatus.setText("Simulation stopped.");
     }
 }

@@ -7,13 +7,20 @@ import java.util.Map;
 public class NetworkModel {
     public final double minX, minY, maxX, maxY;
     public final List<List<Point>> polylines;          // roads
+    public final List<List<Point>> junctionPolygons; // junction areas (polygons)
     public final Map<String, Point> trafficLightNodes; // junctionId -> position
 
     public NetworkModel(double minX, double minY, double maxX, double maxY,
                         List<List<Point>> polylines,
+                        List<List<Point>> junctionPolygons,
                         Map<String, Point> trafficLightNodes) {
-        this.minX = minX; this.minY = minY; this.maxX = maxX; this.maxY = maxY;
+        this.minX = minX;
+        this.minY = minY;
+        this.maxX = maxX;
+        this.maxY = maxY;
+
         this.polylines = polylines;
+        this.junctionPolygons = junctionPolygons;
         this.trafficLightNodes = trafficLightNodes;
     }
 
