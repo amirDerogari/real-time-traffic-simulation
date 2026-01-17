@@ -30,6 +30,10 @@ public class SimulationController {
     private List<VehiclePositionSnapshot> lastNonEmptyVehicleSnapshots = List.of();
     private long lastNonEmptyStep = -1;
 
+    private final List<VehiclePositionSnapshot> vehiclePositionHistory = new ArrayList<>();
+    private long lastVehiclePositionsRecordedStep = -1;
+
+
 
 
 
@@ -84,6 +88,27 @@ public class SimulationController {
             );
         }
 
+        // Store vehicle positions history (one record per step)
+        if (simulationStep != lastVehiclePositionsRecordedStep) {
+            for (Vehicle v : vehicles) {
+                String edgeId = v.getEdgeId();
+                if (edgeId == null) {
+                    edgeId = "";
+                }
+
+                vehiclePositionHistory.add(
+                        new VehiclePositionSnapshot(
+                                simulationStep,
+                                v.getId(),
+                                edgeId,
+                                v.getSpeed()
+                        )
+                );
+            }
+            lastVehiclePositionsRecordedStep = simulationStep;
+        }
+
+
 
 
         simulationStep++; // Increase simulation step
@@ -116,12 +141,13 @@ public class SimulationController {
     public void exportVehiclePositionsToCsv(String filePath) {
         VehiclePositionCsvExporter exporter = new VehiclePositionCsvExporter();
         try {
-            exporter.export(lastNonEmptyVehicleSnapshots, filePath);
-            LOG.info("Vehicle positions export successful: " + filePath);
+            exporter.export(vehiclePositionHistory, filePath);
+            LOG.info("Vehicle positions export successful: " + filePath + " (rows=" + vehiclePositionHistory.size() + ")");
         } catch (IOException e) {
             LOG.severe("Vehicle positions export failed: " + e.getMessage());
         }
     }
+
 
 
 
