@@ -1,7 +1,5 @@
 package trafficsimulation;
 
-import org.eclipse.sumo.libtraci.StringVector;
-
 public class Vehicle {
 
     //Attributes
@@ -33,11 +31,13 @@ public class Vehicle {
 
     public String getRoadId() {return org.eclipse.sumo.libtraci.Vehicle.getRoadID(this.id);}
 
-    //@return Type (DEFAULT_VEHTYPE, bus_standard, emergency)
+    /**
+     * @return ID of VehicleType: ("emergency"/"DEFAULT_VEHTYPE","bus_standard")
+     */
     public String getTypeId() {return this.type;}
 
 
-    //Setter methods
+    //Setter
     public void setSpeed(double speed) {
         org.eclipse.sumo.libtraci.Vehicle.setSpeed(this.id, speed);
     }

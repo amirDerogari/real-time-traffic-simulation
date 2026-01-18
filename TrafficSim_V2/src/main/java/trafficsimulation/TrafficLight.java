@@ -32,11 +32,13 @@ public class TrafficLight {
     public void setPhaseDuration(int phaseDuration) { org.eclipse.sumo.libtraci.TrafficLight.setPhaseDuration(this.id, phaseDuration); }
 
 
-    //NextPhase (for GUI Button)
+    /**
+     * Forces a switch to next lightphase
+     * Extracts trafficlight phases and switches between them depending on amount
+     * created for manual switches
+     */
     public void forceNextPhase(){
-        //String programID = this.getProgramId(); //default = 0
         TraCILogicVector logicVector = org.eclipse.sumo.libtraci.TrafficLight.getCompleteRedYellowGreenDefinition(this.id); //TraciLogicVector
-        int programsCount = logicVector.size(); //amount of phases
         TraCILogic logic = logicVector.get(0);
         int numberOfPhases = logic.getPhases().size();
         System.out.println("phase count: " + numberOfPhases);
@@ -47,8 +49,11 @@ public class TrafficLight {
         this.setPhaseIndex(nextPhase);
     }
 
-
-    //rush-hour function: prioritize traffic on main stream
+    /**
+     * Forces a phase state for a given duration
+     * @param phaseIndex Index of the phase to perform
+     * @param duration Length of steps to hold the state
+     */
     public void forceGreenPhase(int phaseIndex, int duration){
         setPhaseIndex(phaseIndex);
         setPhaseDuration(duration);

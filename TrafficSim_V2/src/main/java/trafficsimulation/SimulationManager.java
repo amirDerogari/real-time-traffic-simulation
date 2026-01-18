@@ -3,6 +3,7 @@ package trafficsimulation;
 import org.eclipse.sumo.libtraci.Simulation;
 import org.eclipse.sumo.libtraci.StringVector; //dynamic and can reserve memory
 import trafficsimulation.app.SimulationController;
+import trafficsimulation.EmergencyDistanceException;
 
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.List;
 public class SimulationManager {
 
     //Attributes
+    private int emergencyCount = 0;
     private List<TrafficLight> trafficLights = new ArrayList<>();
     private final SimulationController simulationController = new SimulationController();
     private final String configPath;
@@ -30,24 +32,31 @@ public class SimulationManager {
         return connected;
     }
 
-    //Get TrafficLights from SUMO (called once when starting simulation)
+    /**
+     * Get TrafficLights from SUMO and store in attribute
+     * Used for calling methods of traffic light instances
+     * Called once when Simulation starts
+     */
     public void initializeTrafficLights() {
         trafficLights = getAllTrafficLights();
     }
 
-    //Simulation start
+    /**
+     * Starts the SUMO Simulation
+     * Loads Libtraci libaries and connects to SUMO with Configuration from configPath
+     * Also Initializes a list of traffic lights
+     */
     public void startSimulation() {
 
-            // preload native libs (Mojtaba added)
-            try {
-                Simulation.preloadLibraries();
-            } catch (Exception e) {
-                System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
-                throw new RuntimeException(e);
-
-
+        // preload native libs (Mojtaba added)
+        try {
+            Simulation.preloadLibraries();
+        } catch (Exception e) {
+            System.err.println("Failed to preload libtraci native libraries: " + e.getMessage());
+            throw new RuntimeException(e);
         }
-        String[] command = {"sumo", "-c", configPath, "--start", "--delay", "200"};
+
+        String[] command = {"sumo-gui", "-c", configPath, "--start", "--delay", "200"};
         StringVector commandVector = new StringVector(command);
 
         System.out.println("Starting SUMO");
@@ -57,12 +66,14 @@ public class SimulationManager {
         connected = true;
         System.out.println("TraCI connected");
 
-
         initializeTrafficLights();
 
     }
 
-    //End SUMO process and close TraCI connection
+    /**
+     * Ends the Simulation properly
+     * Disconnects from SUMO
+     */
     public void closeSimulation() {
         try {
 
@@ -76,6 +87,11 @@ public class SimulationManager {
         }
     }
 
+
+    /**
+     * Tells SUMO to make one step
+     * Also checks if emergency Cars are on critical Edges to ensure its priority
+     */
     public void step() {
 
         int busCount = 0;
@@ -85,6 +101,15 @@ public class SimulationManager {
         List<Vehicle> vehicles = getVehicles();
         for (Vehicle v : vehicles) {
             if(v.getTypeId().equals("emergency")){
+
+                if(v.getRoadId().equals("EM_IN")){
+                    for(Vehicle v2 : vehicles){
+                        if(v2.getRoadId().equals("CIL1")){
+                            org.eclipse.sumo.libtraci.Vehicle.slowDown(v2.getId(), 1.0, 5);
+                        }
+                    }
+                }
+
                 if(v.getRoadId().equals("WI1")){
                     trafficLights.get(0).setPhaseIndex(0);
                 }
@@ -106,6 +131,12 @@ public class SimulationManager {
 
     //Factory of Instances
     //calls IDs, then creates list of Instances of our Vehicle class
+    /**
+     * Factory of Instances
+     * calls IDs, then creates list of Instances of our Vehicle class
+     * @return List with Vehicle IDs of living cars
+     * Important to know: with this called in step() every time, objects are created new in every step
+     */
     public List<Vehicle> getVehicles(){
         StringVector ids = org.eclipse.sumo.libtraci.Vehicle.getIDList();
         List<Vehicle> vehicles = new ArrayList<>();
@@ -116,7 +147,12 @@ public class SimulationManager {
         return vehicles;
     }
 
-    //the Same for TrafficLights
+    /**
+     * Factory of Instances
+     * calls IDs, then creates list of Instances of our TrafficLight class
+     * @return List with TrafficLight IDs
+     * Is called to initialize Map objects
+     */
     public List<TrafficLight> getAllTrafficLights() {
 
         StringVector ids = org.eclipse.sumo.libtraci.TrafficLight.getIDList();
@@ -137,25 +173,58 @@ public class SimulationManager {
 
 
     //spawn emergency Vehicle
+    /**
+     * Spawn an emergency Vehicle
+     * First its route is set
+     * Then priority is manipulated over other cars
+     * Created for manual vehicle injection with GUI button
+     */
     public void spawnEmergencyVehicle(){
-        StringVector routeEdges = new StringVector();
-        //define route
-        routeEdges.add("EM_IN");
-        routeEdges.add("CIL2");
-        routeEdges.add("WI1");
-        routeEdges.add("ONETOTWO");
-        routeEdges.add("EO2");
-        org.eclipse.sumo.libtraci.Route.add("emergency_route", routeEdges);
 
-        //fix ID: only one Emergency vehicle should be alive!
-        if (!org.eclipse.sumo.libtraci.Vehicle.getIDList().contains("em_1")){
-            org.eclipse.sumo.libtraci.Vehicle.add("em_1", "emergency_route", "emergency", "now");
-        } else {
-          System.out.println("emergency car already exists");
+        //Error handling (Distance)
+        try {
+            List<Vehicle> vehicles = getVehicles();
+            for(Vehicle v : vehicles){
+                if (v.getEdgeId().equals("EM_IN") && v.getTypeId().equals("emergency")){
+                    throw new EmergencyDistanceException("Error: Startpoint EM_IN is blocked");
+                }
+            }
+
+        //only create route for the first spawn
+        if(emergencyCount==0){
+            StringVector routeEdges = new StringVector();
+            //define route
+            routeEdges.add("EM_IN");
+            routeEdges.add("CIL2");
+            routeEdges.add("WI1");
+            routeEdges.add("ONETOTWO");
+            routeEdges.add("EO2");
+            org.eclipse.sumo.libtraci.Route.add("emergency_route", routeEdges);
+        }
+
+        String vehicleId = "em_" + emergencyCount;
+        org.eclipse.sumo.libtraci.Vehicle.add("em_"+ vehicleId, "emergency_route", "emergency", "now");
+
+        //emergency car aggressive drive up (ensures not to wait at a driveway)
+        org.eclipse.sumo.libtraci.Vehicle.setSpeedMode("em_"+ vehicleId, 31); //does not slow down
+        org.eclipse.sumo.libtraci.Vehicle.setLaneChangeMode("em_"+ vehicleId, 1621); //uses any space
+        org.eclipse.sumo.libtraci.Vehicle.setImpatience("em_"+ vehicleId, 1.0);
+
+        emergencyCount++;
+
+        //error catch part
+        }
+        catch (EmergencyDistanceException e) {
+            // treat exception
+            System.err.println("LOGIK-ERROR: " + e.getMessage());
         }
     }
 
-    //rushHour: let main traffic through CR1,CR2
+    /**
+     * Activates the RushHour
+     * It forces a green phase for the main traffic lane
+     * on both TrafficLights for 80 steps
+     */
     public void runRushHour(){
         System.out.println("runRushHour");
         trafficLights.get(0).forceGreenPhase(0,80);
