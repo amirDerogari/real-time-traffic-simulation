@@ -8,3 +8,4 @@ public class MainApp {
         Application.launch(TrafficSimulationAppFX.class, args);
     }
 }
+

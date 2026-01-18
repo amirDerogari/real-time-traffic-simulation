@@ -17,6 +17,21 @@ import javafx.scene.shape.Shape;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Polygon;
 
+/**
+ * JavaFX view responsible for rendering the road network, vehicles, and traffic lights.
+ *
+ * <p>The view draws the static network (roads and junction polygons) once per resize or network reload,
+ * and draws dynamic elements (vehicles and traffic light colors) every simulation tick.
+ *
+ * <p>Features:
+ * <ul>
+ *   <li>Zoom with mouse wheel (centered around cursor position)</li>
+ *   <li>Pan with right mouse drag</li>
+ *   <li>Double click to reset zoom/pan</li>
+ *   <li>Selection and highlighting of vehicles and traffic lights</li>
+ *   <li>Vehicle type filtering (cars, buses, emergency)</li>
+ * </ul>
+ */
 public class MapView extends Pane {
 
     private String selectedVehicleId = null;
@@ -29,76 +44,138 @@ public class MapView extends Pane {
     private final Map<String, Vehicle> latestVehicles = new HashMap<>();
     private final Map<String, Tooltip> vehicleTooltips = new HashMap<>();
     private NetworkModel network;
-
     private final Map<String, Shape> vehicleNodes = new HashMap<>();
 
-    // store traffic light nodes by ID, so we change their color live (updated)
+    /** Traffic light circles keyed by id, reused so their colors can be updated each tick. */
     private final Map<String, Circle> trafficLightNodes = new HashMap<>();
 
-    // transform parameters
+
     private double scale = 1.0;
     private double minX, maxY;
     private double margin = 20;
 
     // Zoom and Pan state variables (worldLayer)
-    private double zoom = 1.0; //current zoom factor applied to the map (1.0 = normal, >1 zoom in, <1 zoom out)
+    private double zoom = 1.0;
 
     private double panX = 0;
-    private double panY = 0; //current translation (how far the map is shifted left/right and up/down)
+    private double panY = 0;
 
     private double mouseStartX;
-    private double mouseStartY; //mouse position when a drag starts (to measure how far the user moved)
+    private double mouseStartY;
 
     private double panStartX;
-    private double panStartY; //the pan values at the moment the drag starts
+    private double panStartY;
 
+    // --- Vehicle filtering flags
+    private boolean showCars = true;
+    private boolean showBuses = true;
+    private boolean showEmergency = true;
 
+    // --- last counts (for ControlPanel display)
+    private int countCars = 0;
+    private int countBuses = 0;
+    private int countEmergency = 0;
+
+    /**
+     * Sets which vehicle types should be visible during rendering.
+     *
+     * <p>This only affects drawing. Vehicle counts are still computed from the full vehicle list.
+     *
+     * @param cars whether to show cars (default type)
+     * @param buses whether to show buses (type id "bus_standard")
+     * @param emergency whether to show emergency vehicles (type id "emergency")
+     */
+    public void setVehicleTypeVisibility(boolean cars, boolean buses, boolean emergency) {
+        this.showCars = cars;
+        this.showBuses = buses;
+        this.showEmergency = emergency;
+    }
+
+    /**
+     * @return number of cars counted during the last {@link #renderVehicles(List)} call
+     */
+    public int getCountCars() { return countCars; }
+
+    /**
+     * @return number of buses counted during the last {@link #renderVehicles(List)} call
+     */
+    public int getCountBuses() { return countBuses; }
+
+    /**
+     * @return number of emergency vehicles counted during the last {@link #renderVehicles(List)} call
+     */
+    public int getCountEmergency() { return countEmergency; }
+
+    private boolean shouldRenderVehicle(Vehicle v) {
+        String type = v.getTypeId();
+        if ("emergency".equals(type)) return showEmergency;
+        if ("bus_standard".equals(type)) return showBuses;
+        return showCars; // everything else treated as "car"
+    }
+
+    /**
+     * Applies the current zoom and pan values to the world layer.
+     *
+     * <p>This transforms the entire rendered map (roads, lights, vehicles) as a single group.
+     */
+    private void applyTransforms() {
+        worldLayer.setScaleX(zoom);
+        worldLayer.setScaleY(zoom);
+
+        worldLayer.setTranslateX(panX);
+        worldLayer.setTranslateY(panY);
+    }
+
+    /**
+     * Creates an empty map view and initializes zoom/pan and mouse interaction handlers.
+     *
+     * <p>The map will not draw anything until a {@link NetworkModel} is provided via {@link #setNetwork(NetworkModel)}.
+     */
     public MapView() {
         setStyle("-fx-background-color: #2b2b2b;");
-        worldLayer.getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer); //a layer stack inside worldLayer. roads are behind, then lights, then vehicles on top
-        getChildren().add(worldLayer); //display the whole Layer group
+        worldLayer.getChildren().addAll(roadLayer, trafficLightLayer, vehicleLayer);
+        getChildren().add(worldLayer);
         roadLayer.setMouseTransparent(true); //roads ignore mouse events
-        //trafficLightLayer.setMouseTransparent(true); //(traffic lights won’t be clickable now, after adding features, goes out of comment)
 
-        applyTransforms(); //set WorldLayer's scale and translation
+        applyTransforms();
 
         // Mouse wheel zoom (centered on mouse position)
         setOnScroll(e -> {
-            double oldZoom = zoom; //save previous zoom level
+            double oldZoom = zoom;
 
-            double factor = (e.getDeltaY() > 0) ? 1.1 : 0.9; //zoom in or zoom out depending direction
-            zoom = clamp(zoom * factor, 0.2, 5.0); //update zoom but with limit
+            double factor = (e.getDeltaY() > 0) ? 1.1 : 0.9;
+            zoom = clamp(zoom * factor, 0.2, 5.0);
 
             double mouseX = e.getX();
-            double mouseY = e.getY(); //cursor position in view
+            double mouseY = e.getY();
 
-            double f = zoom / oldZoom; // how much zoom changed
+            double f = zoom / oldZoom;
             panX = mouseX - f * (mouseX - panX);
-            panY = mouseY - f * (mouseY - panY); //adjust zoom so that zoom works around mouse not top left corner
+            panY = mouseY - f * (mouseY - panY);
 
-            applyTransforms(); //apply zoom + pan to the map
-            e.consume(); //prevent scroll effecting parent UI, not scrolling whole window
+            applyTransforms();
+            e.consume();
         });
 
         // Mouse drag pan
-        setOnMousePressed(e -> { //when mouse is pressed
+        setOnMousePressed(e -> {
             //right button for pan
-            if (!e.isSecondaryButtonDown()) return; //only pan when right click on mouse is pressed
+            if (!e.isSecondaryButtonDown()) return;
 
             mouseStartX = e.getX();
-            mouseStartY = e.getY(); //save starting mouse position
+            mouseStartY = e.getY();
 
             panStartX = panX;
-            panStartY = panY; //Save current pan values at the start of the drag
+            panStartY = panY;
         });
 
-        setOnMouseDragged(e -> { //runs while the mouse is being dragged
+        setOnMouseDragged(e -> {
             if (!e.isSecondaryButtonDown()) return;
 
             panX = panStartX + (e.getX() - mouseStartX);
-            panY = panStartY + (e.getY() - mouseStartY); //Updates panX/panY by adding the mouse movement (current - start) to the original value
+            panY = panStartY + (e.getY() - mouseStartY);
 
-            applyTransforms(); //apply so map moves immediately
+            applyTransforms();
         });
 
         // Quick reset (double click)
@@ -106,19 +183,19 @@ public class MapView extends Pane {
             if (e.getClickCount() == 2) {
                 zoom = 1.0;
                 panX = 0;
-                panY = 0; //default view values
-                applyTransforms(); //apply to jump back to default view
+                panY = 0;
+                applyTransforms();
                 return;
             }
 
             Object target = e.getTarget();
 
-            boolean clickedVehicle = (target instanceof Shape) && vehicleNodes.containsValue((Shape) target); // true if the user clicked a Circle AND that Circle is one of the vehicle circles created
-            boolean clickedTrafficLight = (target instanceof Circle) && trafficLightNodes.containsValue((Circle) target); // true if the user clicked a Circle AND that Circle is one of the traffic light circles created
+            boolean clickedVehicle = (target instanceof Shape) && vehicleNodes.containsValue((Shape) target);
+            boolean clickedTrafficLight = (target instanceof Circle) && trafficLightNodes.containsValue((Circle) target);
 
             // Clear selection unless a vehicle circle was clicked
-            if (!clickedVehicle && !clickedTrafficLight) { //if the circle is not a vehicle or TL
-                clearSelection(); //deselect
+            if (!clickedVehicle && !clickedTrafficLight) {
+                clearSelection();
                 clearTrafficLightSelection();
             }
         });
@@ -130,26 +207,30 @@ public class MapView extends Pane {
         heightProperty().addListener((obs, o, n) -> redrawStaticLayers());
     }
 
-    //apply current zoom and pan to the whole map (WorldLayer)
-    private void applyTransforms() {
-        worldLayer.setScaleX(zoom);
-        worldLayer.setScaleY(zoom); //zooms in/out
-
-        worldLayer.setTranslateX(panX);
-        worldLayer.setTranslateY(panY); //pans the map
-
+    /**
+     * Clamps a value into the given inclusive range.
+     */
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 
-    private double clamp(double value, double min, double max) {return Math.max(min, Math.min(max, value)); //force zoom to stay in range (not less than min/ more than max, otherwise it returns value)
-    }
-
+    /**
+     * @return the id of the currently selected traffic light, or {@code null} if none is selected
+     */
     public String getSelectedTrafficLightId() {
         return selectedTrafficLightId;
     }
 
-    //inject the loaded road network into the MapView
+    /**
+     * Injects the loaded network model into the view and redraws static layers.
+     *
+     * <p>This clears all dynamic state (vehicles, tooltips, selection, traffic light circles) and rebuilds
+     * the road/junction shapes for the current view size.
+     *
+     * @param network the network model to display
+     */
     public void setNetwork(NetworkModel network) {
-        this.network = network; //store NetworkModel
+        this.network = network;
 
         // clean old state
         vehicleLayer.getChildren().clear();
@@ -163,24 +244,28 @@ public class MapView extends Pane {
         selectedVehicleId = null;
         selectedTrafficLightId = null;
         selectedTrafficLightNode = null;
-        redrawStaticLayers(); //immediately redraw the static map elements
+        redrawStaticLayers();
     }
 
-    //redrawing the static map
+    /**
+     * Rebuilds and redraws static layers (roads, junction polygons, and traffic light circles).
+     *
+     * <p>This is triggered after {@link #setNetwork(NetworkModel)} and also when the view is resized.
+     */
     private void redrawStaticLayers() {
-        if (network == null) return; //draw nothing until a network is loaded
+        if (network == null) return;
 
-        roadLayer.getChildren().clear(); //remove road shape to build them fresh
-        trafficLightLayer.getChildren().clear();//remove light shape to build them fresh
+        roadLayer.getChildren().clear();
+        trafficLightLayer.getChildren().clear();
         trafficLightNodes.clear(); // clear the Circle cache to rebuild TL circles on resize/reload
 
         double w = getWidth();
-        double h = getHeight(); //get the current size of the Mapview
+        double h = getHeight();
         if (w <= 0 || h <= 0) return; //if size=0, skip drawing to avoid bad scaling
 
         // compute SUMO map in world coordinates
-        double rangeX = network.maxX - network.minX; //width of network
-        double rangeY = network.maxY - network.minY; //height of network
+        double rangeX = network.maxX - network.minX;
+        double rangeY = network.maxY - network.minY;
 
         // scale in X and Y direction to fit and picks the smaller one so both width and height fit (no clipping)
         scale = Math.min((w - 2 * margin) / rangeX, (h - 2 * margin) / rangeY);
@@ -210,16 +295,16 @@ public class MapView extends Pane {
             for (NetworkModel.Point p : poly) {
                 double sx = toScreenX(p.x());
                 double sy = toScreenY(p.y());
-                line.getPoints().addAll(sx, sy); //convert each SUMO point (x,y) into screen coordinates (sx,sy)
+                line.getPoints().addAll(sx, sy);
             }
-            line.setStroke(Color.LIGHTGRAY); //set road color
-            line.setStrokeWidth(15); //set thickness
-            roadLayer.getChildren().add(line); //add polyline to roadLayer so it appears on the map
+            line.setStroke(Color.LIGHTGRAY);
+            line.setStrokeWidth(15);
+            roadLayer.getChildren().add(line);
         }
 
         // Create traffic light circles once, color updated in renderTrafficLights()
         network.trafficLightNodes.forEach((id, p) -> {
-            Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 8); //create a circle
+            Circle c = new Circle(toScreenX(p.x()), toScreenY(p.y()), 8);
             c.setFill(Color.DARKGRAY);     // placeholder until SUMO updates
             c.setStroke(Color.WHITE);      // always visible
             c.setStrokeWidth(1.5);
@@ -228,28 +313,56 @@ public class MapView extends Pane {
                 selectTrafficLight(id, c);
                 e.consume();
             });
-            trafficLightNodes.put(id, c); //store it here for late to update the same circle’s color when the SUMO phase changes
-            trafficLightLayer.getChildren().add(c); //add circle to trafficLightLayer so it becomes visible
+            trafficLightNodes.put(id, c); // Cache for color updates
+            trafficLightLayer.getChildren().add(c);
         });
     }
 
+    /**
+     * Renders vehicles for the current simulation step.
+     *
+     * <p>Vehicle shapes are created once per vehicle id and then moved each tick using translations.
+     * Vehicles can be filtered by type (cars/buses/emergency).
+     *
+     * @param vehicles list of vehicles from the backend for the current simulation step
+     */
     public void renderVehicles(List<Vehicle> vehicles) {
-        if (network == null) return; //won’t draw vehicles until the network is loaded
+        if (network == null) return;
+
+        // reset counts every tick
+        countCars = 0;
+        countBuses = 0;
+        countEmergency = 0;
+
+        // track IDs we want visible this tick
+        java.util.Set<String> visibleIds = new java.util.HashSet<>();
 
         for (Vehicle v : vehicles) {
-            String id = v.getId(); //unique ID as key
+            String id = v.getId();
+            String type = v.getTypeId();
+
+            // count (grouping)
+            if ("emergency".equals(type)) countEmergency++;
+            else if ("bus_standard".equals(type)) countBuses++;
+            else countCars++;
+
+            // filtering
+            if (!shouldRenderVehicle(v)) {
+                continue;
+            }
+
+            visibleIds.add(id);
+
             latestVehicles.put(id, v); //the latest Vehicle object data saves here so other features (tooltip/selection) can read its data
-            PositionVector p = v.getPositionVector(); //the vehicle’s current SUMO (x,y)
+            PositionVector p = v.getPositionVector();
 
             double x = toScreenX(p.getX());
-            double y = toScreenY(p.getY()); //convert SUMO coords
+            double y = toScreenY(p.getY());
 
-            Shape node = vehicleNodes.get(id); //check if this vehicle already has a shape drawn
+            Shape node = vehicleNodes.get(id);
 
-            // Create node if missing (based on vehicle type)
+            // Create shape if missing (based on vehicle type)
             if (node == null) {
-                String type = v.getTypeId(); // you already have this in SimulationManager logic
-
                 if ("emergency".equals(type)) {
                     // triangle
                     Polygon tri = new Polygon(
@@ -285,15 +398,14 @@ public class MapView extends Pane {
             }
 
             // Always (re)install and always update text every tick
-            Tooltip.install(node, tooltip); //attach created tooltip to the node so hovering shows it
-            //update the tooltip text every tick with the latest data
+            Tooltip.install(node, tooltip);
             tooltip.setText(
                     "Vehicle ID: " + id +
+                            "\nType: " + type +
                             "\nSpeed: " + String.format("%.2f", v.getSpeed()) + " m/s" +
                             "\nEdge: " + v.getEdgeId()
             );
 
-            //Update position - move the vehicle node to its new position every tick (works for all Shapes)
             node.setTranslateX(x);
             node.setTranslateY(y);
 
@@ -326,43 +438,76 @@ public class MapView extends Pane {
             }
 
         }
+        // Remove nodes that were visible before but not visible now (filtered out or disappeared)
+        java.util.List<String> toRemove = new java.util.ArrayList<>();
+        for (String existingId : vehicleNodes.keySet()) {
+            if (!visibleIds.contains(existingId)) {
+                Shape n = vehicleNodes.get(existingId);
+                if (n != null) vehicleLayer.getChildren().remove(n);
+                toRemove.add(existingId);
+                vehicleTooltips.remove(existingId);
+                latestVehicles.remove(existingId);
+
+                // if selected vehicle got removed, clear selection
+                if (existingId.equals(selectedVehicleId)) {
+                    // Clear highlight if selected vehicle disappears
+                    if (n != null) {
+                        n.setStroke(null);
+                        n.setStrokeWidth(0);
+                    }
+                    selectedVehicleId = null;
+                }
+            }
+        }
+        for (String rid : toRemove) vehicleNodes.remove(rid);
     }
 
-    // update traffic lights colors from SUMO state each tick
+    /**
+     * Updates traffic light colors based on their current phase states.
+     *
+     * <p>Traffic light circles are created when the network is drawn; this method only changes their fill colors.
+     *
+     * @param tls list of traffic lights from the backend for the current simulation step
+     */
     public void renderTrafficLights(List<TrafficLight> tls) {
-        if (network == null) return; //won’t update lights until the network (and positions) is loaded
+        if (network == null) return;
 
-        for (TrafficLight tl : tls) { //look for TL in backend
-            String id = tl.getId(); //get ID as key
+        for (TrafficLight tl : tls) {
+            String id = tl.getId();
 
-            Circle c = trafficLightNodes.get(id); //Look up the already-created circle
+            Circle c = trafficLightNodes.get(id);
             if (c == null) {
                 // Not in our network list (ID mismatch) -> ignore for now
                 continue;
             }
 
-            c.setFill(colorFromPhaseState(tl.getPhaseState())); //set circle’s color based on the current phase
+            c.setFill(colorFromPhaseState(tl.getPhaseState()));
         }
 
     }
 
-    //convert SUMO’s traffic-light phase string into color in display
+    /**
+     * Converts a SUMO traffic light phase state string into a display color.
+     *
+     * <p>This method uses the first character of the state string as a simplified summary:
+     * g->green, y->yellow, r->red, otherwise gray.
+     *
+     * @param state raw phase state string returned by SUMO
+     * @return corresponding JavaFX color used for rendering
+     */
     private Color colorFromPhaseState(String state) {
         if (state == null || state.isBlank()) return Color.GRAY;
 
         char s = Character.toLowerCase(state.charAt(0));
         return switch (s) {
-            case 'g' -> Color.LIMEGREEN; // If any green exists -> show green
-            case 'y' -> Color.GOLD; // If any yellow exists -> show yellow
-            case 'r' -> Color.RED; // If any red exists -> show red
-            default -> Color.GRAY; // Otherwise gray
+            case 'g' -> Color.LIMEGREEN;
+            case 'y' -> Color.GOLD;
+            case 'r' -> Color.RED;
+            default -> Color.GRAY;
         };
     }
 
-
-    //handle the highlighting
     private void selectVehicle(String id) {
-        // Deselect old highlight
         if (selectedVehicleId != null) {
             Shape old = vehicleNodes.get(selectedVehicleId);
             if (old != null) {
@@ -371,7 +516,6 @@ public class MapView extends Pane {
             }
         }
 
-        // Select new
         selectedVehicleId = id;
         Shape node = vehicleNodes.get(id);
         if (node != null) {
@@ -379,40 +523,36 @@ public class MapView extends Pane {
             node.setStrokeWidth(2);
         }
     }
-    //when mouse leaves vehicle's circle
+
     private void onVehicleMouseExit(String vehicleId, Shape node) {
-        if (!vehicleId.equals(selectedVehicleId)) { //this vehicle is not the selected one? --> remove the hover highlight
+        if (!vehicleId.equals(selectedVehicleId)) {
             node.setStroke(null);
             node.setStrokeWidth(0);
         }
-        setCursor(javafx.scene.Cursor.DEFAULT); //reset the mouse cursor back to the default arrow
+        setCursor(javafx.scene.Cursor.DEFAULT);
     }
 
-
-    //deselect the currently selected vehicle
     private void clearSelection() {
-        if (selectedVehicleId == null) return; //if nothing is selected, then it's ok
+        if (selectedVehicleId == null) return;
 
         Shape node = vehicleNodes.get(selectedVehicleId);
-        if (node != null) { //if a vehicle's circle is selected, reset its appearance
+        if (node != null) {
             node.setStroke(null);
             node.setStrokeWidth(0);
         }
-        selectedVehicleId = null; //set to null so that no vehicle is selected
+        selectedVehicleId = null;
     }
 
     // select a traffic light (called when a TL circle is clicked)
     private void selectTrafficLight(String id, Circle node) {
-        // clear old highlight
         if (selectedTrafficLightNode != null) {
             selectedTrafficLightNode.setStroke(null);
             selectedTrafficLightNode.setStrokeWidth(0);
         }
 
-        selectedTrafficLightId = id; // store the selected traffic light ID
-        selectedTrafficLightNode = node; // store the selected circle node (so we can un-highlight later)
+        selectedTrafficLightId = id;
+        selectedTrafficLightNode = node;
 
-        // highlight
         node.setStroke(Color.WHITE);
         node.setStrokeWidth(2);
     }
@@ -423,10 +563,15 @@ public class MapView extends Pane {
             selectedTrafficLightNode.setStroke(null);
             selectedTrafficLightNode.setStrokeWidth(0);
         }
-        selectedTrafficLightNode = null; // no selected node anymore
-        selectedTrafficLightId = null; // no selected ID anymore
+        selectedTrafficLightNode = null;
+        selectedTrafficLightId = null;
     }
 
+    /**
+     * Clears all dynamic elements (vehicles, tooltips, selection) without removing the static network.
+     *
+     * <p>This is useful when restarting the simulation or when the backend connection resets.
+     */
     public void resetDynamicLayers() {
         vehicleLayer.getChildren().clear();
         vehicleNodes.clear();
@@ -440,13 +585,25 @@ public class MapView extends Pane {
 
 
 
-    //next two methods convert SUMO world coordinates into JavaFX screen coordinates
-    private double toScreenX(double x) { //shift X so the map starts at margin and scales it
-        return margin + (x - minX) * scale; //move the network’s left boundary to 0
+    /**
+     * Converts a SUMO world x-coordinate into a JavaFX screen x-coordinate.
+     *
+     * @param x world x-coordinate
+     * @return screen x-coordinate after scaling and margin offset
+     */
+    private double toScreenX(double x) {
+        return margin + (x - minX) * scale;
     }
 
-    // JavaFX y goes downward; SUMO y goes upward -> invert using maxY
+    /**
+     * Converts a SUMO world y-coordinate into a JavaFX screen y-coordinate.
+     *
+     * <p>JavaFX y increases downward, while SUMO y increases upward, so this method inverts y using {@code maxY}.
+     *
+     * @param y world y-coordinate
+     * @return screen y-coordinate after scaling, inversion, and margin offset
+     */
     private double toScreenY(double y) {
-        return margin + (maxY - y) * scale; //does the same but flips Y (maxY - y)
+        return margin + (maxY - y) * scale;
     }
 }

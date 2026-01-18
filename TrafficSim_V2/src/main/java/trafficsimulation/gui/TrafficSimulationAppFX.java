@@ -8,38 +8,53 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
-
-//full ap wiring
+/**
+ * JavaFX application entry point for the traffic simulation GUI.
+ *
+ * <p>This class wires together the GUI components (map view and control panel),
+ * loads the SUMO network for rendering, initializes the simulation backend, and
+ * triggers statistics export when the application closes.
+ */
 public class TrafficSimulationAppFX extends Application {
 
+    /** Collects simulation statistics and provides export functionality. */
     private SimulationController simulationController;
 
-
+    /**
+     * Initializes and shows the main GUI window.
+     *
+     * <p>This method:
+     * <ul>
+     *   <li>creates the {@link MapView} and loads the SUMO network into it,</li>
+     *   <li>creates the {@link SimulationManager} used to control SUMO/TraCI,</li>
+     *   <li>creates the {@link SimulationController} used to collect/export statistics,</li>
+     *   <li>builds the UI layout (map in center, controls on the right),</li>
+     *   <li>exports statistics to CSV/PDF when the window is closed.</li>
+     * </ul>
+     *
+     * @param stage the primary stage provided by JavaFX
+     */
     @Override
     public void start(Stage stage) {
 
-        //Map
-        MapView mapView = new MapView(); //create map view
-        mapView.setNetwork(NetworkLoader.loadFromResources("final_map.net.xml")); //load road network + draw static map
+        MapView mapView = new MapView();
+        mapView.setNetwork(NetworkLoader.loadFromResources("final_map.net.xml"));
 
-        //Backend manager (Caspar)
-        String configPath = "src/main/resources/final_map.sumocfg"; //path to SUMO config file
-        SimulationManager simManager = new SimulationManager(configPath); //backend manager to start/step/close SUMO
+        String configPath = "src/main/resources/final_map.sumocfg";
+        SimulationManager simManager = new SimulationManager(configPath);
 
-        //Statistics controller (Caspar)
         simulationController = new SimulationController();
 
-        //Control panel
         ControlPanel controlPanel = new ControlPanel(simManager, mapView, simulationController); //right panel controlling simulation + rendering
 
-        BorderPane root = new BorderPane(); //main layout container
-        root.setCenter(mapView); //put map in center
-        root.setRight(controlPanel); //put controls on the right
+        BorderPane root = new BorderPane();
+        root.setCenter(mapView);
+        root.setRight(controlPanel);
 
-        Scene scene = new Scene(root, 1200, 800); //create scene with fixed window size
-        stage.setTitle("Real-Time Traffic Simulation"); //window title
-        stage.setScene(scene); //attach scene to stage
-        stage.show(); //show window
+        Scene scene = new Scene(root, 1200, 800);
+        stage.setTitle("Real-Time Traffic Simulation");
+        stage.setScene(scene);
+        stage.show();
 
         //CSV und PDF export on application close
         stage.setOnCloseRequest(event -> {

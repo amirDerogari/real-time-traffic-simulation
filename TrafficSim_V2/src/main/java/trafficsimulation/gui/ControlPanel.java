@@ -12,44 +12,128 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import trafficsimulation.app.SimulationController;
-
-
+import javafx.scene.control.CheckBox;
 import java.util.List;
 
-public class ControlPanel extends VBox { //JavaFX vertical layout panel
+/**
+ * JavaFX control panel shown next to the map.
+ *
+ * <p>This panel provides:
+ * <ul>
+ *   <li>Start/Stop controls for the simulation,</li>
+ *   <li>traffic controls such as enabling rush hour, spawning an emergency vehicle, and switching to the next traffic light phase,</li>
+ *   <li>vehicle type visibility filters (cars, buses, emergency),</li>
+ *   <li>vehicle count display,</li>
+ *   <li>information about the currently selected traffic light on the map.</li>
+ * </ul>
+ *
+ * <p>The simulation is advanced periodically using a JavaFX {@link Timeline}. Starting SUMO is executed on a
+ * background thread to avoid freezing the JavaFX application thread.
+ */
+public class ControlPanel extends VBox {
 
-    private SimulationManager simManager; //reference to the backend, so the panel can call startSimulation(), step(), closeSimulation(), etc
-    private final MapView mapView; //reference to the map, so the panel can tell it to render vehicles/traffic lights each tick
+    /** Backend reference used to start/stop/step the simulation and query vehicles/traffic lights. */
+    private SimulationManager simManager;
+
+    /** Reference to the map view, used for rendering vehicles, traffic lights, and reading the selected TL id. */
+    private final MapView mapView;
+
+    /** Reference to the simulation controller (kept for integration with statistics/export or future features). */
     private final SimulationController simulationController;
 
-    private Timeline timeline; //JavaFX timer that repeatedly runs update loop (tick)
-    private boolean running = false; //basic state guard - prevent starting twice / stopping when already stopped
-    private final Label selectedTlIdLabel = new Label("Selected TL: none"); // label that shows the currently selected traffic light ID
-    private final Label selectedTlStateLabel = new Label("State: -"); // label that shows the selected traffic light’s current state
+    /** JavaFX timer that triggers the periodic update loop (tick). */
+    private Timeline timeline;
+
+    /** True while the simulation is running (prevents starting twice). */
+    private boolean running = false;
+
+    /** UI label showing the currently selected traffic light id. */
+    private final Label selectedTlIdLabel = new Label("Selected TL: none");
+
+    /** UI label showing the current state of the selected traffic light. */
+    private final Label selectedTlStateLabel = new Label("State: -");
+
+    /** UI label for short status messages (e.g., errors or user guidance). */
     private final Label actionStatus = new Label("");
 
+    /** UI label showing the current vehicle counts. */
+    private final Label vehicleCountLabel = new Label("Cars: 0 | Buses: 0 | Emergency: 0");
 
-    //build the right-side control UI and wire it to the simulation
+    /**
+     * Creates the control panel UI and wires all buttons/checkboxes to simulation actions.
+     *
+     * @param simManager backend simulation manager
+     * @param mapView map view that renders the network, vehicles, and traffic lights
+     * @param simulationController controller used for simulation-related coordination (e.g., statistics/export integration)
+     */
     public ControlPanel(SimulationManager simManager, MapView mapView, SimulationController simulationController) {
-        this.simManager = simManager; //store backend reference
-        this.mapView = mapView; //store map reference
+        this.simManager = simManager;
+        this.mapView = mapView;
         this.simulationController = simulationController;
 
-        setPadding(new Insets(12)); //inner padding around the panel
-        setSpacing(10); //vertical space between UI elements
-        setPrefWidth(280); //preferred width of the panel
-        setStyle("-fx-background-color: #3c3f41;"); //background color (dark)
+        setPadding(new Insets(12));
+        setSpacing(10);
+        setPrefWidth(280);
+        setStyle("-fx-background-color: #3c3f41;");
 
         Label title = new Label("Controls");
-        title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"); // title styling
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
 
-        Button startBtn = new Button("Start Simulation"); //start button
-        startBtn.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
-        startBtn.setOnAction(e -> startSimulation()); //on click: start simulation + timeline
+        Button startBtn = new Button("Start Simulation");
+        startBtn.setStyle("-fx-background-color: yellowgreen");
+        startBtn.setMaxWidth(Double.MAX_VALUE);
+        startBtn.setOnAction(e -> startSimulation());
 
-        Button stopBtn = new Button("Stop Simulation"); //stop button
-        stopBtn.setMaxWidth(Double.MAX_VALUE); //make button fill panel width
-        stopBtn.setOnAction(e -> stopSimulation()); //on click: stop timeline + close simulation
+        Button stopBtn = new Button("Stop Simulation");
+        stopBtn.setStyle("-fx-background-color: lightcoral");
+        stopBtn.setMaxWidth(Double.MAX_VALUE);
+        stopBtn.setOnAction(e -> stopSimulation());
+
+        Label filterTitle = new Label("Filters");
+        filterTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        CheckBox showCarsBox = new CheckBox("Show cars");
+        CheckBox showBusesBox = new CheckBox("Show buses");
+        CheckBox showEmergencyBox = new CheckBox("Show emergency");
+        showCarsBox.setSelected(true);
+        showBusesBox.setSelected(true);
+        showEmergencyBox.setSelected(true);
+        showCarsBox.setStyle("-fx-text-fill: white;");
+        showBusesBox.setStyle("-fx-text-fill: white;");
+        showEmergencyBox.setStyle("-fx-text-fill: white;");
+
+
+        Runnable applyFilter = () -> mapView.setVehicleTypeVisibility(
+                showCarsBox.isSelected(),
+                showBusesBox.isSelected(),
+                showEmergencyBox.isSelected()
+        );
+
+        showCarsBox.setOnAction(e -> applyFilter.run());
+        showBusesBox.setOnAction(e -> applyFilter.run());
+        showEmergencyBox.setOnAction(e -> applyFilter.run());
+
+        // apply once at startup
+        applyFilter.run();
+
+        Label vehicleTitle = new Label("Vehicle counts");
+        vehicleTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        vehicleCountLabel.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-color: #2b2b2b;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-padding: 8 10 8 10;" +
+                        "-fx-border-color: #777;" +
+                        "-fx-border-radius: 6;" +
+                        "-fx-border-width: 1;"
+        );
+        vehicleCountLabel.setMaxWidth(Double.MAX_VALUE);
+
+        Label trafficcontrolTitle = new Label("Traffic Control");
+        trafficcontrolTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
         Button rushHourBtn = new Button("Enable Rush Hour");
         rushHourBtn.setMaxWidth(Double.MAX_VALUE);
@@ -73,6 +157,7 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
             actionStatus.setText("Emergency vehicle spawned (or already exists).");
         });
 
+
         Button nextPhaseBtn = new Button("Next Phase");
         nextPhaseBtn.setMaxWidth(Double.MAX_VALUE);
         nextPhaseBtn.setOnAction(e -> {
@@ -86,7 +171,7 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
                 return;
             }
 
-            // Caspar must add in SimulationManager
+            /// TODO: Implement nextPhase(String tlId) in
             simManager.nextPhase(tlId);
 
             actionStatus.setText("Next phase for TL: " + tlId);
@@ -94,23 +179,37 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
 
         actionStatus.setStyle("-fx-text-fill: #cfcfcf;");
 
-        Label tlTitle = new Label("Traffic Light Info"); // title label for TL info section
-        tlTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"); // title styling
+        Label tlTitle = new Label("Traffic Light Info");
+        tlTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        selectedTlIdLabel.setStyle("-fx-text-fill: white;"); // title styling
-        selectedTlStateLabel.setStyle("-fx-text-fill: white;"); // title styling
+        selectedTlIdLabel.setStyle("-fx-text-fill: white;");
+        selectedTlStateLabel.setStyle("-fx-text-fill: white;");
+
+        Label statusTitle = new Label("Status");
+        statusTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
 
-        VBox spacer = new VBox(); // empty spacer region
-        VBox.setVgrow(spacer, Priority.ALWAYS); //spacer expands to push buttons to top
+        VBox spacer = new VBox();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        getChildren().addAll(title, new Separator(), startBtn, stopBtn, new Separator(), rushHourBtn, emergencyBtn, nextPhaseBtn, actionStatus, new Separator(), tlTitle, selectedTlIdLabel, selectedTlStateLabel, spacer); //add everything to this VBox
+        getChildren().addAll(title, startBtn, stopBtn, new Separator(),
+                trafficcontrolTitle, rushHourBtn, emergencyBtn, nextPhaseBtn, new Separator(),
+                filterTitle, showCarsBox, showBusesBox, showEmergencyBox, new Separator(),
+                vehicleTitle, vehicleCountLabel, new Separator(),
+                tlTitle, selectedTlIdLabel, selectedTlStateLabel, new Separator(),
+                statusTitle, actionStatus, spacer);
     }
 
+    /**
+     * Starts the simulation and begins the periodic update loop.
+     *
+     * <p>SUMO startup is performed on a background thread so the JavaFX UI thread stays responsive.
+     * The periodic stepping is performed by a {@link Timeline} that calls {@link #tick()} repeatedly.
+     */
     private void startSimulation() {
-        if (running) return; //prevent starting twice
+        if (running) return;
         mapView.resetDynamicLayers();
-        running = true; //mark simulation as running
+        running = true;
 
         actionStatus.setText("Starting simulation...");
 
@@ -118,23 +217,35 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         new Thread(simManager::startSimulation, "SUMO-Start-Thread").start();
 
         // Step + redraw 10 times per second
-        timeline = new Timeline(new KeyFrame(Duration.millis(100), e -> tick())); //create a repeating timer, every 100ms call tick() (≈10 times/sec)
-        timeline.setCycleCount(Timeline.INDEFINITE); //run forever until stopped
-        timeline.play(); //start timer
+        timeline = new Timeline(new KeyFrame(Duration.millis(100), e -> tick()));
+        timeline.setCycleCount(Timeline.INDEFINITE);
+        timeline.play();
     }
 
-    private void tick() { //every 100ms from the Timeline
+    /**
+     * Advances the simulation by one step and updates the GUI.
+     *
+     * <p>This method is called periodically by the JavaFX {@link Timeline}. It steps the simulation,
+     * fetches vehicles and traffic lights, triggers rendering in the {@link MapView}, and updates UI labels.
+     */
+    private void tick() {
         if (!simManager.isConnected())
-            return; //If SUMO not connected yet, do nothing (prevent spam)
+            return;
 
         try {
             simManager.step(); //advance SUMO by one step
             List<Vehicle> vehicles = simManager.getVehicles(); //fetch current vehicles from SUMO
-            simulationController.collectStats(vehicles);
-            mapView.renderVehicles(vehicles); //draw/update vehicles on the map
-            mapView.renderVehicles(vehicles); //draw vehicles on the map
-            List<trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights(); //fetch current traffic lights
-            mapView.renderTrafficLights(tls); //update traffic light colors on the map
+
+            mapView.renderVehicles(vehicles);
+
+            vehicleCountLabel.setText(
+                    "Cars: " + mapView.getCountCars() +
+                            " | Buses: " + mapView.getCountBuses() +
+                            " | Emergency: " + mapView.getCountEmergency()
+            );
+
+            List<trafficsimulation.TrafficLight> tls = simManager.getAllTrafficLights(); //fetch current TLs
+            mapView.renderTrafficLights(tls);
             updateTrafficLightInfo(tls);
 
         }
@@ -146,7 +257,20 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
     }
 
 
-    // Change SUMO returned state for each TL to simple colors: Green, Yellow, Red
+    /**
+     * Converts a SUMO traffic light state string into a simplified color name.
+     *
+     * <p>SUMO state strings often contain multiple characters, one per signal group.
+     * This method uses the first character as a quick summary:
+     * <ul>
+     *   <li>'g' -> GREEN</li>
+     *   <li>'y' -> YELLOW</li>
+     *   <li>'r' -> RED</li>
+     * </ul>
+     *
+     * @param state raw state string returned by SUMO
+     * @return "GREEN", "YELLOW", "RED", or "UNKNOWN" if the value cannot be interpreted
+     */
     private String summarizeTlState(String state) {
         if (state == null || state.isBlank()) return "UNKNOWN";
 
@@ -159,7 +283,13 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         };
     }
 
-
+    /**
+     * Updates the traffic light info section based on the currently selected traffic light in the map view.
+     *
+     * <p>If no traffic light is selected, this method resets the labels to default values.
+     *
+     * @param tls list of traffic lights from the current simulation step
+     */
     private void updateTrafficLightInfo(List<trafficsimulation.TrafficLight> tls) {
         String selectedId = mapView.getSelectedTrafficLightId();
 
@@ -171,7 +301,6 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
 
         selectedTlIdLabel.setText("Selected TL: " + selectedId);
 
-        // Find matching traffic light in current list
         String state = "-";
         for (trafficsimulation.TrafficLight tl : tls) {
             if (selectedId.equals(tl.getId())) {
@@ -182,17 +311,18 @@ public class ControlPanel extends VBox { //JavaFX vertical layout panel
         selectedTlStateLabel.setText("State: " + summarizeTlState(state));
     }
 
-
+    /**
+     * Stops the periodic update loop and closes the simulation connection.
+     */
     private void stopSimulation() {
-        if (!running) return; //if already stopped, do nothing
-        running = false; //mark as not running
+        if (!running) return;
+        running = false;
 
         if (timeline != null) { //if the update timer exists
-            timeline.stop(); //stop periodic tick calls
-            timeline = null; //drop reference
+            timeline.stop();
+            timeline = null;
         }
 
-        // Close SUMO / TraCI connection
         simManager.closeSimulation();
         actionStatus.setText("Simulation stopped.");
     }
