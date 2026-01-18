@@ -18,6 +18,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+/**
+ * The SimulationController is responsible for collecting statistics
+ * during each simulation step.
+ *
+ * It coordinates:
+ * - collecting vehicle data
+ * - creating statistic snapshots
+ * - storing history
+ * - exporting data to CSV and PDF files
+ *
+ * This class does NOT calculate statistics itself.
+ * It delegates calculations to the StatsManager.
+ */
+
 
 public class SimulationController {
 
@@ -27,41 +41,20 @@ public class SimulationController {
     private final StatsManager statsManager = new StatsManager(); // Statistics handler
     private long simulationStep = 0; // Simulation time step counter
 
-    private List<VehiclePositionSnapshot> lastNonEmptyVehicleSnapshots = List.of();
-    private long lastNonEmptyStep = -1;
-
     private final List<VehiclePositionSnapshot> vehiclePositionHistory = new ArrayList<>();
     private long lastVehiclePositionsRecordedStep = -1;
-
-
-
-
 
     // Store all snapshots here, so export has data
     private final List<SimulationStatsSnapshot> history = new ArrayList<>();
 
-
+    /**
+     * Collects statistics for the current simulation step.
+     *
+     * @param vehicles list of all vehicles in the current simulation step
+     * @return a snapshot containing statistics of this step
+     */
 
     public SimulationStatsSnapshot collectStats(List<Vehicle> vehicles) {
-
-        if (!vehicles.isEmpty()) {
-            List<VehiclePositionSnapshot> snaps = new ArrayList<>();
-            for (Vehicle v : vehicles) {
-                snaps.add(new VehiclePositionSnapshot(
-                        simulationStep,
-                        v.getId(),
-                        v.getEdgeId(),
-                        v.getSpeed()
-                ));
-            }
-            lastNonEmptyVehicleSnapshots = snaps;
-            lastNonEmptyStep = simulationStep;
-        }
-
-
-
-
-
 
         // Calculate density per edge
         Map<String, Integer> densityPerEdge =
@@ -70,7 +63,6 @@ public class SimulationController {
         // Collect global statistics
         SimulationStatsSnapshot snapshot =
                 statsManager.collectStats(vehicles, simulationStep);
-
 
         // Save snapshot into history list
         history.add(snapshot);
@@ -108,13 +100,15 @@ public class SimulationController {
             lastVehiclePositionsRecordedStep = simulationStep;
         }
 
-
-
-
         simulationStep++; // Increase simulation step
         return snapshot;
     }
 
+    /**
+     * Exports collected simulation statistics to a CSV file.
+     *
+     * @param filePath path of the target CSV file
+     */
 
     public void exportStatsToCsv(String filePath) {
         StatsExporter exporter = new CsvStatsExporter();
@@ -127,6 +121,11 @@ public class SimulationController {
         }
     }
 
+    /**
+     * Exports collected simulation statistics to a PDF file.
+     *
+     * @param filePath path of the target PDF file
+     */
 
     public void exportStatsToPdf(String filePath) {
         StatsExporter pdfExporter = new PdfStatsExporter();
@@ -138,6 +137,13 @@ public class SimulationController {
         }
     }
 
+    /**
+     * Exports vehicle position data to a CSV file.
+     *
+     * @param filePath path of the target CSV file
+     */
+
+
     public void exportVehiclePositionsToCsv(String filePath) {
         VehiclePositionCsvExporter exporter = new VehiclePositionCsvExporter();
         try {
@@ -147,9 +153,5 @@ public class SimulationController {
             LOG.severe("Vehicle positions export failed: " + e.getMessage());
         }
     }
-
-
-
-
 
 }

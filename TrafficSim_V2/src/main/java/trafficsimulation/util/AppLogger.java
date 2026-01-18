@@ -5,6 +5,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+/**
+ * AppLogger is a utility class for configuring and providing
+ * application-wide loggers.
+ *
+ * It ensures:
+ * - consistent logging format
+ * - single initialization
+ * - prevention of duplicate console handlers
+ */
+
 public class AppLogger {
 
     private static boolean initialized = false; // Initialization flag
@@ -13,13 +23,28 @@ public class AppLogger {
         // Prevent instantiation (utility class)
     }
 
-    public static Logger getLogger(Class<?> clazz) { // Returns class-specific logger
+    /**
+     * Returns a logger instance for the given class.
+     *
+     * @param clazz the class requesting the logger
+     * @return configured logger instance
+     */
+
+
+    public static synchronized Logger getLogger(Class<?> clazz) { // Returns class-specific logger
         if (!initialized) { // Initialize logging only once
             initRootLogger();
             initialized = true;
         }
         return Logger.getLogger(clazz.getName()); // Logger named after class
     }
+
+    /**
+     * Initializes the root logger configuration.
+     *
+     * This method sets up a single console handler,
+     * defines the log format, and prevents duplicate log output.
+     */
 
     private static void initRootLogger() { // Configure global logger
         Logger rootLogger = Logger.getLogger(""); // Root logger

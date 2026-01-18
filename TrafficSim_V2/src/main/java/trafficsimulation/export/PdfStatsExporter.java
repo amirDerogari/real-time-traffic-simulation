@@ -18,9 +18,24 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
+/**
+ * PdfStatsExporter exports simulation statistics
+ * into a formatted PDF report.
+ *
+ * The report contains a table with one row per simulation step.
+ */
+
 public class PdfStatsExporter implements StatsExporter {
 
     private static final Logger LOG = AppLogger.getLogger(PdfStatsExporter.class);
+
+    /**
+     * Exports simulation statistics to a PDF file.
+     *
+     * @param snapshots list of statistic snapshots
+     * @param targetPath output file path
+     * @throws IOException if PDF creation fails
+     */
 
     @Override
     public void export(List<SimulationStatsSnapshot> snapshots, String targetPath) throws IOException {

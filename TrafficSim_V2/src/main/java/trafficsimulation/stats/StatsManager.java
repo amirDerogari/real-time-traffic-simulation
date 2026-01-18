@@ -8,9 +8,31 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * StatsManager is responsible for calculating simulation statistics.
+ *
+ * It computes:
+ * - average speed
+ * - minimum and maximum speed
+ * - vehicle count
+ * - vehicle density per edge
+ *
+ * It also stores a history of all generated statistic snapshots.
+ */
+
+
 public class StatsManager { // Manages calculation and storage of statistics
 
     private final List<SimulationStatsSnapshot> history = new ArrayList<>(); // Statistics history
+
+    /**
+     * Calculates statistics for a given simulation step.
+     *
+     * @param vehicles list of all vehicles
+     * @param simulationStep current simulation step
+     * @return a statistics snapshot for this step
+     */
+
 
     public SimulationStatsSnapshot collectStats(
             List<Vehicle> vehicles,
@@ -59,6 +81,13 @@ public class StatsManager { // Manages calculation and storage of statistics
     public List<SimulationStatsSnapshot> getHistory() {
         return Collections.unmodifiableList(history); // Return read-only history
     }
+
+    /**
+     * Calculates how many vehicles are present on each edge.
+     *
+     * @param vehicles list of all vehicles
+     * @return a map with edge IDs as keys and vehicle counts as values
+     */
 
     public Map<String, Integer> calculateDensityPerEdge(List<Vehicle> vehicles) {
 

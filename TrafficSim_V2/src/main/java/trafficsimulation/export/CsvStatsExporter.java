@@ -8,15 +8,29 @@ import java.util.logging.Logger;
 import trafficsimulation.stats.SimulationStatsSnapshot;
 import trafficsimulation.util.AppLogger;
 
+/**
+ * CsvStatsExporter exports simulation statistics
+ * into a CSV (Comma-Separated Values) file.
+ *
+ * Each row represents one simulation step.
+ */
+
 public class CsvStatsExporter implements StatsExporter {
 
     private static final Logger LOG =
             AppLogger.getLogger(CsvStatsExporter.class); // Logger for this class (used to log info, warnings, and errors)
 
+    /**
+     * Exports a list of simulation statistic snapshots to a CSV file.
+     *
+     * @param snapshots list of statistic snapshots
+     * @param targetPath output file path
+     * @throws IOException if writing the file fails
+     */
+
     @Override
     public void export(List<SimulationStatsSnapshot> snapshots,
                        String targetPath) throws IOException {
-
 
         LOG.info("CSV-Export gestartet: " + targetPath); // Log start
 
@@ -33,7 +47,6 @@ public class CsvStatsExporter implements StatsExporter {
                         snapshot.getMaxSpeed() + "\n"; // Build CSV row
                 writer.write(line); // Write row
             }
-
 
             LOG.info("CSV-Export beendet.");
         }

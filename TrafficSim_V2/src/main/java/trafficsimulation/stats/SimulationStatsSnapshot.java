@@ -1,5 +1,16 @@
 package trafficsimulation.stats;
 
+/**
+ * SimulationStatsSnapshot represents an immutable snapshot
+ * of simulation statistics at a specific simulation step.
+ *
+ * It stores aggregated values like:
+ * - average speed
+ * - vehicle count
+ * - minimum speed
+ * - maximum speed
+ */
+
 public class SimulationStatsSnapshot {
 
     private final long simulationStep;    // Simulation time step or tick
@@ -19,8 +30,6 @@ public class SimulationStatsSnapshot {
         this.minSpeed = minSpeed;
         this.maxSpeed = maxSpeed;
     }
-
-
 
     public long getSimulationStep() { // Returns the simulation step
         return simulationStep;

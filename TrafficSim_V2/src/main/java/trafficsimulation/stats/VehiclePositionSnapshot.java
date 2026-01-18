@@ -1,5 +1,16 @@
 package trafficsimulation.stats;
 
+/**
+ * VehiclePositionSnapshot represents the state of a single vehicle
+ * at a specific simulation step.
+ *
+ * It stores:
+ * - simulation step
+ * - vehicle ID
+ * - current edge ID
+ * - current speed
+ */
+
 public class VehiclePositionSnapshot {
 
     private final long step;
