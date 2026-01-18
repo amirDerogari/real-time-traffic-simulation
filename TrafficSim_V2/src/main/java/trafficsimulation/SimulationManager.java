@@ -56,7 +56,7 @@ public class SimulationManager {
             throw new RuntimeException(e);
         }
 
-        String[] command = {"sumo-gui", "-c", configPath, "--start", "--delay", "200"};
+        String[] command = {"sumo", "-c", configPath, "--start", "--delay", "200"};
         StringVector commandVector = new StringVector(command);
 
         System.out.println("Starting SUMO");
