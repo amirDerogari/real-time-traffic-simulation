@@ -21,9 +21,9 @@ import java.util.Map;
  */
 
 
-public class StatsManager { // Manages calculation and storage of statistics
+public class StatsManager {
 
-    private final List<SimulationStatsSnapshot> history = new ArrayList<>(); // Statistics history
+    private final List<SimulationStatsSnapshot> history = new ArrayList<>();
 
     /**
      * Calculates statistics for a given simulation step.
@@ -38,14 +38,14 @@ public class StatsManager { // Manages calculation and storage of statistics
             List<Vehicle> vehicles,
             long simulationStep
     ) {
-        int vehicleCount = vehicles.size(); // Number of vehicles
+        int vehicleCount = vehicles.size();
 
-        double averageSpeed = 0.0; // Default average speed
-        double minSpeed = 0.0;     // Minimum speed of vehicles
-        double maxSpeed = 0.0;     // Maximum speed of vehicles
+        double averageSpeed = 0.0;
+        double minSpeed = 0.0;
+        double maxSpeed = 0.0;
 
         if (vehicleCount > 0) {
-            double speedSum = 0.0; // Sum of speeds
+            double speedSum = 0.0;
             minSpeed = Double.MAX_VALUE; // Start with very high value
 
             for (Vehicle v : vehicles) {
@@ -59,7 +59,7 @@ public class StatsManager { // Manages calculation and storage of statistics
                     maxSpeed = speed;
                 }
             }
-            averageSpeed = speedSum / vehicleCount; // Calculate average speed
+            averageSpeed = speedSum / vehicleCount;
         }
 
 
@@ -74,12 +74,18 @@ public class StatsManager { // Manages calculation and storage of statistics
                 );
 
         history.add(snapshot); // Store snapshot in history
-        return snapshot; // Return snapshot
+        return snapshot;
     }
+
+    /**
+     * Returns an unmodifiable view of the collected statistics history.
+     *
+     * @return read-only list of statistic snapshots
+     */
 
 
     public List<SimulationStatsSnapshot> getHistory() {
-        return Collections.unmodifiableList(history); // Return read-only history
+        return Collections.unmodifiableList(history);
     }
 
     /**
@@ -94,7 +100,7 @@ public class StatsManager { // Manages calculation and storage of statistics
         Map<String, Integer> densityPerEdge = new HashMap<>();
 
         for (Vehicle v : vehicles) {
-            String edgeId = v.getEdgeId(); // Current edge of vehicle
+            String edgeId = v.getEdgeId();
 
 
             if (edgeId == null || edgeId.isEmpty()) {
@@ -110,6 +116,6 @@ public class StatsManager { // Manages calculation and storage of statistics
             densityPerEdge.put(edgeId, count+1);
         }
 
-        return densityPerEdge; // Return density per edge
+        return densityPerEdge;
     }
 }

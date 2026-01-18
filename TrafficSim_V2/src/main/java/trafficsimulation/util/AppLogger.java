@@ -17,7 +17,7 @@ import java.util.logging.SimpleFormatter;
 
 public class AppLogger {
 
-    private static boolean initialized = false; // Initialization flag
+    private static boolean initialized = false; //Prevents multiple logger initializations
 
     private AppLogger() {
         // Prevent instantiation (utility class)
@@ -31,7 +31,7 @@ public class AppLogger {
      */
 
 
-    public static synchronized Logger getLogger(Class<?> clazz) { // Returns class-specific logger
+    public static synchronized Logger getLogger(Class<?> clazz) {
         if (!initialized) { // Initialize logging only once
             initRootLogger();
             initialized = true;

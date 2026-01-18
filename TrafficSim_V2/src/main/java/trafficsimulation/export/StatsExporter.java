@@ -12,7 +12,7 @@ import trafficsimulation.stats.SimulationStatsSnapshot;
  * such as CSV or PDF.
  */
 
-public interface StatsExporter { // Exporter interface
+public interface StatsExporter {
 
     /**
      * Exports simulation statistics to a file.
@@ -23,5 +23,5 @@ public interface StatsExporter { // Exporter interface
      */
 
     void export(List<SimulationStatsSnapshot> snapshots,
-                String targetPath) throws IOException; // Export contract
+                String targetPath) throws IOException;
 }

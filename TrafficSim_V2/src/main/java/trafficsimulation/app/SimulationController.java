@@ -38,8 +38,8 @@ public class SimulationController {
     private static final Logger LOG =
             AppLogger.getLogger(SimulationController.class);
 
-    private final StatsManager statsManager = new StatsManager(); // Statistics handler
-    private long simulationStep = 0; // Simulation time step counter
+    private final StatsManager statsManager = new StatsManager();
+    private long simulationStep = 0;
 
     private final List<VehiclePositionSnapshot> vehiclePositionHistory = new ArrayList<>();
     private long lastVehiclePositionsRecordedStep = -1;

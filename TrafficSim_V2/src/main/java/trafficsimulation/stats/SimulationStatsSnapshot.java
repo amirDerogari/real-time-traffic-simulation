@@ -13,9 +13,9 @@ package trafficsimulation.stats;
 
 public class SimulationStatsSnapshot {
 
-    private final long simulationStep;    // Simulation time step or tick
-    private final double averageSpeed;    // Average speed of all vehicles
-    private final int vehicleCount;       // Total number of vehicles
+    private final long simulationStep;
+    private final double averageSpeed;
+    private final int vehicleCount;
     private final double minSpeed;
     private final double maxSpeed;
 

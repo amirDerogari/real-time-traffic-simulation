@@ -18,7 +18,7 @@ import trafficsimulation.util.AppLogger;
 public class CsvStatsExporter implements StatsExporter {
 
     private static final Logger LOG =
-            AppLogger.getLogger(CsvStatsExporter.class); // Logger for this class (used to log info, warnings, and errors)
+            AppLogger.getLogger(CsvStatsExporter.class);
 
     /**
      * Exports a list of simulation statistic snapshots to a CSV file.
@@ -32,20 +32,20 @@ public class CsvStatsExporter implements StatsExporter {
     public void export(List<SimulationStatsSnapshot> snapshots,
                        String targetPath) throws IOException {
 
-        LOG.info("CSV-Export gestartet: " + targetPath); // Log start
+        LOG.info("CSV-Export gestartet: " + targetPath);
 
         try (FileWriter writer = new FileWriter(targetPath)) { // Auto-close writer
 
             writer.write("step,averageSpeed,vehicleCount,minSpeed,maxSpeed\n"); // CSV header
 
 
-            for (SimulationStatsSnapshot snapshot : snapshots) { // Iterate snapshots
+            for (SimulationStatsSnapshot snapshot : snapshots) {
                 String line = snapshot.getSimulationStep() + "," +
                         snapshot.getAverageSpeed() + "," +
                         snapshot.getVehicleCount() + "," +
                         snapshot.getMinSpeed() + "," +
-                        snapshot.getMaxSpeed() + "\n"; // Build CSV row
-                writer.write(line); // Write row
+                        snapshot.getMaxSpeed() + "\n";
+                writer.write(line);
             }
 
             LOG.info("CSV-Export beendet.");
