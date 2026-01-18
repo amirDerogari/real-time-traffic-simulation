@@ -20,9 +20,9 @@ public class Test {
         for(int step=0; step<1000; step++ ) {
             manager.step();
 
-            if (step == 80 || step == 200) {
-                //manager.spawnEmergencyVehicle();
-                manager.runRushHour();
+            if (step == 40 || step == 44) {
+                manager.spawnEmergencyVehicle();
+                //manager.runRushHour();
                 //green: CR1=0:GGgrrrGGgrrr and CR2=0:GGgrrrGGgrrr
                 //towards CR1: WI1, towards CR2: ONETOTWO
 
