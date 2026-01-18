@@ -113,6 +113,7 @@ public class SimulationController {
     public void exportStatsToCsv(String filePath) {
         StatsExporter exporter = new CsvStatsExporter();
         try {
+            LOG.info("Export path (CSV): " + new java.io.File(filePath).getAbsolutePath());
             LOG.info("Exporting CSV. History size = " + statsManager.getHistory().size());
             exporter.export(statsManager.getHistory(), filePath);
             LOG.info("CSV export successful: " + filePath);
@@ -130,6 +131,7 @@ public class SimulationController {
     public void exportStatsToPdf(String filePath) {
         StatsExporter pdfExporter = new PdfStatsExporter();
         try {
+            LOG.info("Export path (PDF): " + new java.io.File(filePath).getAbsolutePath());
             pdfExporter.export(history, filePath);
             LOG.info("PDF export successful: " + filePath);
         } catch (IOException e) {
@@ -147,6 +149,7 @@ public class SimulationController {
     public void exportVehiclePositionsToCsv(String filePath) {
         VehiclePositionCsvExporter exporter = new VehiclePositionCsvExporter();
         try {
+            LOG.info("Export path (Vehicle CSV): " + new java.io.File(filePath).getAbsolutePath());
             exporter.export(vehiclePositionHistory, filePath);
             LOG.info("Vehicle positions export successful: " + filePath + " (rows=" + vehiclePositionHistory.size() + ")");
         } catch (IOException e) {
