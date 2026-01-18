@@ -84,6 +84,18 @@ public class PdfStatsExporter implements StatsExporter {
 
             document.add(table);
 
+            double overall = 0.0;
+            if (snapshots != null && !snapshots.isEmpty()) {
+                for (SimulationStatsSnapshot s : snapshots) {
+                    overall += s.getAverageSpeed();
+                }
+                overall = overall / snapshots.size();
+            }
+
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("Overall average speed (across all steps): " + overall));
+
+
             document.close();
             LOG.info("PDF export successful: " + targetPath);
 
@@ -99,4 +111,5 @@ public class PdfStatsExporter implements StatsExporter {
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         table.addCell(cell);
     }
+
 }

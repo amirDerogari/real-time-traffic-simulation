@@ -118,4 +118,16 @@ public class StatsManager {
 
         return densityPerEdge;
     }
+
+    public double getOverallAverageSpeed() {
+        if (history.isEmpty()) {
+            return 0.0;
+        }
+        double sum = 0.0;
+        for (SimulationStatsSnapshot s : history) {
+            sum += s.getAverageSpeed();
+        }
+        return sum / history.size();
+    }
+
 }

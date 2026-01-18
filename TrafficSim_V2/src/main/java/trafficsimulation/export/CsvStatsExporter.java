@@ -48,6 +48,17 @@ public class CsvStatsExporter implements StatsExporter {
                 writer.write(line);
             }
 
+            double overall = 0.0;
+            if (snapshots != null && !snapshots.isEmpty()) {
+                for (SimulationStatsSnapshot s : snapshots) {
+                    overall += s.getAverageSpeed();
+                }
+                overall = overall / snapshots.size();
+            }
+            writer.write("\n");
+            writer.write("OVERALL_AVG_SPEED," + overall + "\n");
+
+
             LOG.info("CSV-Export beendet.");
         }
     }
