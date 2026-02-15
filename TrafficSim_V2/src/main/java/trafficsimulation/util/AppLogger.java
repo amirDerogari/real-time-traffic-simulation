@@ -46,7 +46,7 @@ public class AppLogger {
      * defines the log format, and prevents duplicate log output.
      */
 
-    private static void initRootLogger() { // Configure global logger
+    private static void initRootLogger() {
         Logger rootLogger = Logger.getLogger(""); // Root logger
 
         for (var handler : rootLogger.getHandlers()) {
@@ -55,7 +55,7 @@ public class AppLogger {
 
         ConsoleHandler consoleHandler = new ConsoleHandler(); // Console handler
         consoleHandler.setFormatter(new SimpleFormatter());
-        consoleHandler.setLevel(Level.INFO); // Allow all log levels
+        consoleHandler.setLevel(Level.INFO); // Allow INFO and higher
 
         rootLogger.addHandler(consoleHandler); // Add handler
         rootLogger.setLevel(Level.INFO); // Enable all logs

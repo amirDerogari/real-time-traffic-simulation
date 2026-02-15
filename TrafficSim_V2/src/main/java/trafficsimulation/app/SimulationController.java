@@ -115,7 +115,7 @@ public class SimulationController {
         try {
             LOG.info("Export path (CSV): " + new java.io.File(filePath).getAbsolutePath());
             LOG.info("Exporting CSV. History size = " + statsManager.getHistory().size());
-            exporter.export(statsManager.getHistory(), filePath);
+            exporter.export(history, filePath);
             LOG.info("CSV export successful: " + filePath);
         } catch (IOException e) {
             LOG.severe("CSV export failed: " + e.getMessage());

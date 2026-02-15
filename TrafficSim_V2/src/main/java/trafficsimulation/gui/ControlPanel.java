@@ -234,8 +234,9 @@ public class ControlPanel extends VBox {
 
         try {
             simManager.step(); //advance SUMO by one step
-            List<Vehicle> vehicles = simManager.getVehicles(); //fetch current vehicles from SUMO
-
+            List<Vehicle> vehicles = simManager.getVehicles();
+            //fetch current vehicles from SUMO
+            simulationController.collectStats(vehicles);
             mapView.renderVehicles(vehicles);
 
             vehicleCountLabel.setText(
